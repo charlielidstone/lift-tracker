@@ -35,6 +35,42 @@ SetEntry
 5. **`user_id`** on Workout: stamped from auth session (not typed), enables row-level
    security so each user only sees their own data. Would be dropped if local-only.
 
+## UX design philosophy
+
+**Lowest possible friction between sets.** The app is used on a phone at the gym, mid-workout.
+Every second of fumbling is a second not resting. Guiding rules:
+
+- **No keyboard by default.** All values (weight, reps, RPE) adjust via big `[–]`/`[+]`
+  steppers → thumb-friendly, no typing, no numeric-pad hunting.
+- **Sensible pre-fill.** Adding an exercise creates ONE set already populated with defaults,
+  so a "did it as planned" set is zero taps to log.
+- **Short list.** Exercises collapse into cards; expand only the one you're working. Keeps
+  the screen scannable between sets.
+- **Adjust in place.** Tweak a value without expanding/drilling into a set.
+- **Progressive disclosure.** Advanced input (tap-a-number-to-type for big jumps) comes later;
+  v1 is steppers only.
+
+### UX decisions
+
+6. **Stepper increments:** weight ±5 lb, reps ±1, RPE ±1.
+7. **Fixed defaults for a new set (v1):** weight 100 lb, reps 12, RPE 8.
+   _Why fixed:_ simplest v1. Later: default to last workout's values per exercise.
+8. **Tap-to-type on a value:** deferred. Steppers only for v1; add direct entry if the
+   steppers prove annoying for big jumps (e.g. 100 → 225).
+
+## Component tree
+
+```
+WorkoutView            -- the session: list of exercises + "add exercise"
+  └─ ExerciseCard      -- one exercise, expand/collapse, its sets + "add set"
+       └─ SetRow       -- one logged set; weight/reps/RPE via steppers + delete
+            └─ Stepper -- reusable atom: label + value + [–]/[+]
+```
+
+- `Stepper` is a pure, reusable UI atom (label, value, step, onChange). Built once, used for
+  every adjustable number. Lives in `src/components/`.
+- Components hold UI state only; est. 1RM / PR math stays in `src/lib/` (see STANDARDS.md).
+
 ### Architecture
 
 See `docs/architecture.html` for the visual map (layers, components, data flow).

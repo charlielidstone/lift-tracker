@@ -5,8 +5,8 @@ Charlie leads; Hermes advises, unblocks, and executes on direction. Reusable acr
 
 ## The cycle
 
-1. **Decide before code.** Nail scope + data model + key tradeoffs *in plain language* first.
-   Record decisions with their *why* (see DECISIONS.md). Locks intent before typing.
+1. **Decide before code.** Nail scope + data model + key tradeoffs _in plain language_ first.
+   Record decisions with their _why_ (see DECISIONS.md). Locks intent before typing.
 2. **Diagram before building.** Draw the whole app's structure (layers, components, data
    flow) BEFORE writing feature code — use the `architecture-diagram` skill, save to
    `docs/architecture.html`. Surfaces the shape + naming while it's still cheap to change,
