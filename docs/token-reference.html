@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en" class="">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>shadcn token reference — lift-tracker</title>
+    <style>
+      /* --- Tokens copied from src/index.css (radix-nova preset). --- */
+      /* If you re-theme, re-sync these two blocks (or regenerate this page). */
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+        --card: oklch(1 0 0);
+        --card-foreground: oklch(0.145 0 0);
+        --popover: oklch(1 0 0);
+        --popover-foreground: oklch(0.145 0 0);
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --secondary: oklch(0.97 0 0);
+        --secondary-foreground: oklch(0.205 0 0);
+        --muted: oklch(0.97 0 0);
+        --muted-foreground: oklch(0.556 0 0);
+        --accent: oklch(0.97 0 0);
+        --accent-foreground: oklch(0.205 0 0);
+        --destructive: oklch(0.577 0.245 27.325);
+        --border: oklch(0.922 0 0);
+        --input: oklch(0.922 0 0);
+        --ring: oklch(0.708 0 0);
+        --chart-1: oklch(0.87 0 0);
+        --chart-2: oklch(0.556 0 0);
+        --chart-3: oklch(0.439 0 0);
+        --chart-4: oklch(0.371 0 0);
+        --chart-5: oklch(0.269 0 0);
+        --radius: 0.625rem;
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+        --card: oklch(0.205 0 0);
+        --card-foreground: oklch(0.985 0 0);
+        --popover: oklch(0.205 0 0);
+        --popover-foreground: oklch(0.985 0 0);
+        --primary: oklch(0.922 0 0);
+        --primary-foreground: oklch(0.205 0 0);
+        --secondary: oklch(0.269 0 0);
+        --secondary-foreground: oklch(0.985 0 0);
+        --muted: oklch(0.269 0 0);
+        --muted-foreground: oklch(0.708 0 0);
+        --accent: oklch(0.269 0 0);
+        --accent-foreground: oklch(0.985 0 0);
+        --destructive: oklch(0.704 0.191 22.216);
+        --border: oklch(1 0 0 / 10%);
+        --input: oklch(1 0 0 / 15%);
+        --ring: oklch(0.556 0 0);
+        --chart-1: oklch(0.87 0 0);
+        --chart-2: oklch(0.556 0 0);
+        --chart-3: oklch(0.439 0 0);
+        --chart-4: oklch(0.371 0 0);
+        --chart-5: oklch(0.269 0 0);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 2rem;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: var(--background);
+        color: var(--foreground);
+        transition: background 0.2s, color 0.2s;
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
+      }
+      h1 { font-size: 1.4rem; margin: 0; }
+      h2 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted-foreground);
+        margin: 2rem 0 0.75rem;
+      }
+      p.lead { color: var(--muted-foreground); margin: 0.25rem 0 0; max-width: 60ch; }
+      code { font-family: ui-monospace, monospace; font-size: 0.85em; }
+
+      button.toggle {
+        font: inherit;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: var(--secondary);
+        color: var(--secondary-foreground);
+        border-radius: var(--radius);
+        padding: 0.5rem 1rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 0.75rem;
+      }
+      .pair {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+      /* the swatch itself paints bg + its foreground so you SEE the pairing */
+      .swatch {
+        padding: 1rem;
+        min-height: 84px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .swatch .name { font-weight: 600; font-size: 0.9rem; }
+      .swatch .cls { font-family: ui-monospace, monospace; font-size: 0.72rem; opacity: 0.85; }
+      .meta {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.72rem;
+        background: var(--card);
+        color: var(--muted-foreground);
+        border-top: 1px solid var(--border);
+      }
+      .meta code { color: var(--foreground); }
+
+      /* single-color tokens (no foreground pair): border, input, ring, charts */
+      .mono {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.75rem;
+      }
+      .chip {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.6rem;
+        font-size: 0.75rem;
+      }
+      .chip .box {
+        height: 40px;
+        border-radius: calc(var(--radius) * 0.6);
+        margin-bottom: 0.5rem;
+        border: 1px solid var(--border);
+      }
+      .chip .name { font-weight: 600; }
+      .chip .cls { font-family: ui-monospace, monospace; opacity: 0.8; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <h1>shadcn token reference</h1>
+        <p class="lead">
+          Live swatches of every theme token in your <code>src/index.css</code> (radix-nova).
+          Each card paints the background token with its paired <code>-foreground</code> text on top,
+          so you can see legit pairings. Toggle dark mode to check both.
+        </p>
+      </div>
+      <button class="toggle" id="toggle">🌙 Toggle dark</button>
+    </header>
+
+    <h2>Paired tokens — <code>bg-*</code> + <code>text-*-foreground</code></h2>
+    <div class="grid" id="pairs"></div>
+
+    <h2>Standalone tokens — borders, inputs, focus ring, charts</h2>
+    <div class="mono" id="monos"></div>
+
+    <script>
+      const pairs = [
+        ['background', 'foreground', 'default page surface + text'],
+        ['card', 'card-foreground', 'ExerciseCard surfaces'],
+        ['popover', 'popover-foreground', 'dropdowns / popovers'],
+        ['primary', 'primary-foreground', 'main action — your +/− buttons'],
+        ['secondary', 'secondary-foreground', 'secondary buttons'],
+        ['muted', 'muted-foreground', 'subtle surfaces + dim text'],
+        ['accent', 'accent-foreground', 'hover / highlight states'],
+        ['destructive', 'primary-foreground', 'delete actions (set delete)'],
+      ];
+      const monos = [
+        ['border', 'border-border', 'element borders'],
+        ['input', 'border-input', 'input field borders'],
+        ['ring', 'ring-ring', 'focus rings'],
+        ['chart-1', 'fill-chart-1', 'chart series 1'],
+        ['chart-2', 'fill-chart-2', 'chart series 2'],
+        ['chart-3', 'fill-chart-3', 'chart series 3'],
+        ['chart-4', 'fill-chart-4', 'chart series 4'],
+        ['chart-5', 'fill-chart-5', 'chart series 5'],
+      ];
+
+      const pairsEl = document.getElementById('pairs');
+      for (const [bg, fg, use] of pairs) {
+        const el = document.createElement('div');
+        el.className = 'pair';
+        el.innerHTML = `
+          <div class="swatch" style="background: var(--${bg}); color: var(--${fg});">
+            <div>
+              <div class="name">${bg}</div>
+              <div class="cls">bg-${bg} · text-${fg}</div>
+            </div>
+            <div class="cls">Aa — sample text</div>
+          </div>
+          <div class="meta">${use}</div>`;
+        pairsEl.appendChild(el);
+      }
+
+      const monosEl = document.getElementById('monos');
+      for (const [tok, cls, use] of monos) {
+        const el = document.createElement('div');
+        el.className = 'chip';
+        el.innerHTML = `
+          <div class="box" style="background: var(--${tok});"></div>
+          <div class="name">${tok}</div>
+          <div class="cls">${cls}</div>
+          <div style="opacity:.7; margin-top:.25rem;">${use}</div>`;
+        monosEl.appendChild(el);
+      }
+
+      document.getElementById('toggle').addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+      });
+    </script>
+  </body>
+</html>
