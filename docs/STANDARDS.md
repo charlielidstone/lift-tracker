@@ -23,6 +23,10 @@ for how we build, not a fixed decree. When a rule changes, change it here.
   keeps logic pure + testable.
 - `src/hooks/` — reusable React hooks.
 - Keep business logic OUT of components.
+- **Import UI from `@/components/ui/<name>`, never from `radix-ui/*` directly.** The shadcn
+  wrappers we own render correctly standalone; raw Radix primitives (e.g. `radix-ui/toolbar`
+  Button) require specific parent wrappers and crash the whole app if rendered alone. The
+  `<name>` must match a real file — run `ls src/components/ui/` if unsure (button/card/input…).
 
 ## Testing
 
