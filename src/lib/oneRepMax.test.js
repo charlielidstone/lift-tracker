@@ -4,6 +4,7 @@ import { estimateOneRepMax } from './oneRepMax.js';
 describe('estimateOneRepMax', () => {
   it('returns the weight itself for a single rep', () => {
     expect(estimateOneRepMax(100, 1)).toBe(100);
+    expect(estimateOneRepMax(140, 1)).toBe(140);
   });
 
   it('applies the Epley formula for multiple reps', () => {

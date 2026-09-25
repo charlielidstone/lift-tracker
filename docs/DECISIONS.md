@@ -35,6 +35,11 @@ SetEntry
 5. **`user_id`** on Workout: stamped from auth session (not typed), enables row-level
    security so each user only sees their own data. Would be dropped if local-only.
 
+### Architecture
+
+See `docs/architecture.html` for the visual map (layers, components, data flow).
+Kept in sync as structure evolves.
+
 ### Deferred (not v1)
 
 - Routine/template support
