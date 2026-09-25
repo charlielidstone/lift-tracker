@@ -14,6 +14,7 @@ Charlie leads; Hermes advises, unblocks, and executes on direction. Reusable acr
    Do this for every project.
 3. **Small, named commits.** One logical change per commit, conventional-commit style
    (`chore:`, `feat:`, `fix:`, `docs:`). Repo stays bisectable + readable.
+   Push after each commit (or at least end of session) so `origin` stays current + backed up.
 4. **Build in vertical slices.** Ship one working thing end-to-end (e.g. log a set → see it)
    before breadth. Prefer local/in-memory state first, wire the backend in after the shape is right.
 5. **Human leads the wheel.** Hermes proposes options + tradeoffs, waits for the call on
