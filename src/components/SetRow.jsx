@@ -20,7 +20,21 @@
 import { Stepper } from '@/components/Stepper';
 import { STEP, BOUNDS } from '@/lib/defaults';
 
-export function SetRow({ set, onChange, onDelete }) {
-  // TODO: three Steppers + delete, wired to onChange/onDelete
-  return null;
+export function SetRow({ set, onChange, onDelete, index }) {
+  return (
+    <div className="flex justify-start items-center gap-2 m-1 w-max">
+      <span className="w-5 shrink-0">{index}.</span>
+      <Stepper label="lb" value={set.weight} step={STEP.weight} min={BOUNDS.weight.min} max={BOUNDS.weight.max} onChange={(v) => onChange({ weight: v })} />
+      <Stepper label="reps" value={set.reps} step={STEP.reps} min={BOUNDS.reps.min} max={BOUNDS.reps.max} onChange={(v) => onChange({ reps: v })} />
+      <Stepper label="RPE" value={set.rpe} step={STEP.rpe} min={BOUNDS.rpe.min} max={BOUNDS.rpe.max} onChange={(v) => onChange({ rpe: v })} />
+      <button
+        type="button"
+        className="text-foreground hover:text-destructive/80 transition-colors shrink-0"
+        onClick={onDelete}
+        aria-label={`Delete set ${index}`}
+      >
+        Delete
+      </button>
+    </div>
+  );
 }
