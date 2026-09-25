@@ -1,0 +1,6 @@
+# Prettier config — formatting rules (auto-applied, no debates)
+singleQuote: true
+semi: true
+trailingComma: all
+printWidth: 90
+tabWidth: 2

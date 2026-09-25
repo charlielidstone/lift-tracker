@@ -5,8 +5,8 @@ Charlie leads; Hermes advises, unblocks, and executes on direction. Reusable acr
 
 ## The cycle
 
-1. **Decide before code.** Nail scope + data model + key tradeoffs *in plain language* first.
-   Record decisions with their *why* (see DECISIONS.md). Locks intent before typing.
+1. **Decide before code.** Nail scope + data model + key tradeoffs _in plain language_ first.
+   Record decisions with their _why_ (see DECISIONS.md). Locks intent before typing.
 2. **Small, named commits.** One logical change per commit, conventional-commit style
    (`chore:`, `feat:`, `fix:`, `docs:`). Repo stays bisectable + readable.
 3. **Build in vertical slices.** Ship one working thing end-to-end (e.g. log a set → see it)
