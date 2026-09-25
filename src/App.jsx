@@ -1,17 +1,12 @@
-import { useState } from 'react';
-import heroImg from './assets/hero.png';
-import reactLogo from './assets/react.svg';
-import viteLogo from './assets/vite.svg';
 import './App.css';
-import SetLogger from './components/SetLogger';
+import { WorkoutView } from './components/WorkoutView';
 
 function App() {
-  const [count, setCount] = useState(0);
-
   return (
-    <>
-      <SetLogger />
-    </>
+    <div className="max-w-md mx-auto p-4">
+      <h1 className="text-xl font-semibold mb-4">Today's Workout</h1>
+      <WorkoutView />
+    </div>
   );
 }
 
