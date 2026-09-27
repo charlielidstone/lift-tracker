@@ -23,7 +23,7 @@ import { EditableStat } from '@/components/EditableStat';
 import { Button } from '@/components/ui/button';
 import { STEP, BOUNDS } from '@/lib/defaults';
 
-export function SetRow({ set, onChange, onDelete, index }) {
+export function SetRow({ set, onChange, onDelete, index, readOnly }) {
   // Which stat is expanded into a Stepper (only one at a time). null = all collapsed.
   const [activeField, setActiveField] = useState(null);
   const rowRef = useRef(null);
@@ -53,6 +53,7 @@ export function SetRow({ set, onChange, onDelete, index }) {
         active={activeField === 'weight'}
         onActivate={() => toggleField('weight')}
         onChange={(v) => onChange({ weight: v })}
+        readOnly={readOnly}
       />
       <EditableStat
         label="reps"
@@ -63,6 +64,7 @@ export function SetRow({ set, onChange, onDelete, index }) {
         active={activeField === 'reps'}
         onActivate={() => toggleField('reps')}
         onChange={(v) => onChange({ reps: v })}
+        readOnly={readOnly}
       />
       <EditableStat
         label="RPE"
@@ -73,16 +75,19 @@ export function SetRow({ set, onChange, onDelete, index }) {
         active={activeField === 'rpe'}
         onActivate={() => toggleField('rpe')}
         onChange={(v) => onChange({ rpe: v })}
+        readOnly={readOnly}
       />
-      <Button
-        type="button"
-        size="icon"
-        onClick={onDelete}
-        aria-label={`Delete set ${index}`}
-        className="shrink-0 bg-destructive text-white hover:bg-destructive/90 ml-auto"
-      >
-        <Trash2 className="size-4" />
-      </Button>
+      {!readOnly && (
+        <Button
+          type="button"
+          size="icon"
+          onClick={onDelete}
+          aria-label={`Delete set ${index}`}
+          className="shrink-0 bg-destructive text-white hover:bg-destructive/90 ml-auto"
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      )}
     </div>
   );
 }

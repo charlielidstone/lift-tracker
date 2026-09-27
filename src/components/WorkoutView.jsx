@@ -1,9 +1,14 @@
 // WorkoutView — the top of the logging UI: today's workout as a list of exercises.
 // State + persistence live in useWorkout (loads today's workout from Supabase and
 // auto-saves changes). This component is presentational: render cards + add control.
+//
+// A finished workout renders read-only (locked) so sets can't be edited by accident;
+// an "Edit workout" button unlocks it.
 
 import { ExerciseCard } from '@/components/ExerciseCard';
+import { Button } from '@/components/ui/button';
 import { useWorkout } from '@/hooks/useWorkout';
+import { WORKOUT_TYPES } from '@/lib/defaults';
 
 export function WorkoutView() {
   const {
@@ -12,6 +17,10 @@ export function WorkoutView() {
     library,
     loading,
     error,
+    type,
+    setType,
+    finished,
+    setFinished,
     addExercise,
     updateExercise,
     removeExercise,
@@ -22,6 +31,8 @@ export function WorkoutView() {
     return <p className="text-sm text-muted-foreground">Loading today's workout…</p>;
   }
 
+  const hasExercises = exercises.length > 0;
+
   return (
     <div className="flex flex-col gap-3">
       {error && (
@@ -30,7 +41,43 @@ export function WorkoutView() {
         </p>
       )}
 
-      {exercises.length === 0 && (
+      {/* Locked banner + unlock. */}
+      {finished && (
+        <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2">
+          <span className="text-sm font-medium text-foreground">
+            Workout finished — locked 🔒
+          </span>
+          <Button type="button" variant="outline" size="sm" onClick={() => setFinished(false)}>
+            Edit workout
+          </Button>
+        </div>
+      )}
+
+      {/* Workout type picker — tap to set/toggle off. Disabled when finished. */}
+      <div className="flex flex-wrap gap-1.5">
+        {WORKOUT_TYPES.map((t) => {
+          const active = type === t;
+          return (
+            <button
+              key={t}
+              type="button"
+              disabled={finished}
+              onClick={() => setType(active ? null : t)}
+              aria-pressed={active}
+              className={
+                (active
+                  ? 'rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground'
+                  : 'rounded-full border border-border px-3 py-1 text-xs text-muted-foreground') +
+                (finished ? ' opacity-50' : '')
+              }
+            >
+              {t}
+            </button>
+          );
+        })}
+      </div>
+
+      {!hasExercises && (
         <p className="text-sm text-muted-foreground">No exercises yet — add one to start.</p>
       )}
 
@@ -42,31 +89,41 @@ export function WorkoutView() {
           onToggle={() => toggle(exercise.id)}
           onChange={(next) => updateExercise(exercise.id, next)}
           onRemove={() => removeExercise(exercise.id)}
+          readOnly={finished}
         />
       ))}
 
-      {/* Add-exercise control — sourced from the seeded Supabase library. */}
-      <div className="flex items-center gap-2">
-        <select
-          aria-label="Add exercise"
-          className="rounded-md border border-border bg-background px-2 py-1 text-sm"
-          value=""
-          onChange={(e) => {
-            const picked = library.find((x) => x.id === e.target.value);
-            if (picked) addExercise(picked);
-            e.target.value = '';
-          }}
-        >
-          <option value="" disabled>
-            Add exercise…
-          </option>
-          {library.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.name}
+      {/* Add-exercise control — hidden when finished. */}
+      {!finished && (
+        <div className="flex items-center gap-2">
+          <select
+            aria-label="Add exercise"
+            className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+            value=""
+            onChange={(e) => {
+              const picked = library.find((x) => x.id === e.target.value);
+              if (picked) addExercise(picked);
+              e.target.value = '';
+            }}
+          >
+            <option value="" disabled>
+              Add exercise…
             </option>
-          ))}
-        </select>
-      </div>
+            {library.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Finish button — only when there's something to lock and not already finished. */}
+      {!finished && hasExercises && (
+        <Button type="button" className="mt-2" onClick={() => setFinished(true)}>
+          Finish workout
+        </Button>
+      )}
     </div>
   );
 }

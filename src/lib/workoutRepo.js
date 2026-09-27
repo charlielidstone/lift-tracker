@@ -51,7 +51,7 @@ async function _getOrCreateTodayWorkout() {
 
   let { data: workout, error } = await supabase
     .from('workouts')
-    .select('id, date, name, notes, type')
+    .select('id, date, name, notes, type, finished_at')
     .eq('date', today)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -63,7 +63,7 @@ async function _getOrCreateTodayWorkout() {
     const inserted = await supabase
       .from('workouts')
       .insert(uid ? { date: today, user_id: uid } : { date: today })
-      .select('id, date, name, notes, type')
+      .select('id, date, name, notes, type, finished_at')
       .single();
     if (inserted.error) throw inserted.error;
     workout = inserted.data;
@@ -140,6 +140,17 @@ export async function setWorkoutType(workoutId, type) {
   const { error } = await supabase
     .from('workouts')
     .update({ type })
+    .eq('id', workoutId);
+  if (error) throw error;
+}
+
+// Mark a workout finished (locked) or unfinished (editable). finished=true stamps
+// finished_at with now; false clears it.
+export async function setWorkoutFinished(workoutId, finished) {
+  if (!isSupabaseConfigured) return;
+  const { error } = await supabase
+    .from('workouts')
+    .update({ finished_at: finished ? new Date().toISOString() : null })
     .eq('id', workoutId);
   if (error) throw error;
 }

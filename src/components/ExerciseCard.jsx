@@ -40,7 +40,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DEFAULT_SET } from '@/lib/defaults';
 
-export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove }) {
+export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove, readOnly }) {
   const { name, sets } = exercise;
 
   // Patch one set (by index) with a partial update, e.g. { weight: 105 }.
@@ -86,7 +86,8 @@ export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove 
         <span className="shrink-0 whitespace-nowrap text-sm text-muted-foreground">
           {sets.length} {sets.length === 1 ? 'set' : 'sets'}
         </span>
-        <AlertDialog>
+        {!readOnly && (
+          <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
               type="button"
@@ -117,6 +118,7 @@ export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove 
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        )}
       </CardHeader>
 
       {expanded && (
@@ -128,17 +130,20 @@ export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove 
               set={set}
               onChange={(patch) => patchSet(index, patch)}
               onDelete={() => deleteSet(index)}
+              readOnly={readOnly}
             />
           ))}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addSet}
-            aria-label="Add set"
-            className="self-start"
-          >
-            <Plus /> Add set
-          </Button>
+          {!readOnly && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addSet}
+              aria-label="Add set"
+              className="self-start"
+            >
+              <Plus /> Add set
+            </Button>
+          )}
         </CardContent>
       )}
     </Card>

@@ -14,7 +14,19 @@
 
 import { Stepper } from '@/components/Stepper';
 
-export function EditableStat({ label, value, step, min, max, active, onActivate, onChange }) {
+export function EditableStat({ label, value, step, min, max, active, onActivate, onChange, readOnly }) {
+  // Read-only: static chip, not tappable, no stepper overlay.
+  if (readOnly) {
+    return (
+      <div className="relative shrink-0">
+        <div className="flex items-center gap-1 bg-muted px-3 py-2 rounded-2xl">
+          <span className="text-foreground tabular-nums font-medium">{value}</span>
+          <span className="text-muted-foreground text-sm">{label}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative shrink-0">
       {/* Collapsed chip — always rendered to reserve layout space (no reflow). */}

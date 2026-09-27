@@ -18,6 +18,8 @@ import {
   fetchExercises,
   getOrCreateTodayWorkout,
   insertSet,
+  setWorkoutFinished as persistWorkoutFinished,
+  setWorkoutType as persistWorkoutType,
   updateSet,
 } from '@/lib/workoutRepo';
 
@@ -56,6 +58,8 @@ export function useWorkout() {
   const [exercises, setExercises] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [library, setLibrary] = useState([]);
+  const [type, setWorkoutTypeState] = useState(null);
+  const [finished, setFinishedState] = useState(false);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState(null);
 
@@ -73,6 +77,8 @@ export function useWorkout() {
         if (cancelled) return;
         setLibrary(lib);
         workoutIdRef.current = workout.id;
+        setWorkoutTypeState(workout.type ?? null);
+        setFinishedState(Boolean(workout.finished_at));
         setExercises(workout.exercises);
         savedRef.current = snapshotSets(workout.exercises);
       } catch (e) {
@@ -167,12 +173,38 @@ export function useWorkout() {
 
   const toggle = useCallback((id) => setExpandedId((cur) => (cur === id ? null : id)), []);
 
+  // Workout type label (Push/Pull/…). Optimistic + persisted immediately.
+  const setType = useCallback((nextType) => {
+    setWorkoutTypeState(nextType);
+    if (workoutIdRef.current) {
+      persistWorkoutType(workoutIdRef.current, nextType).catch((e) => {
+        setError(e);
+        console.error('[useWorkout] setType failed', e);
+      });
+    }
+  }, []);
+
+  // Finish (lock) or unlock the workout. Optimistic + persisted immediately.
+  const setFinished = useCallback((next) => {
+    setFinishedState(next);
+    if (workoutIdRef.current) {
+      persistWorkoutFinished(workoutIdRef.current, next).catch((e) => {
+        setError(e);
+        console.error('[useWorkout] setFinished failed', e);
+      });
+    }
+  }, []);
+
   return {
     exercises,
     expandedId,
     library,
     loading,
     error,
+    type,
+    setType,
+    finished,
+    setFinished,
     addExercise,
     updateExercise,
     removeExercise,
