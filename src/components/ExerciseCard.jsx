@@ -75,15 +75,17 @@ export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove 
           }
         }}
         aria-expanded={expanded}
-        className="flex flex-row items-center justify-between cursor-pointer select-none"
+        className="flex flex-row items-center gap-2 cursor-pointer select-none"
       >
-        <div className="flex items-center gap-2">
-          {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
-          <CardTitle>{name}</CardTitle>
-          <span className="text-sm text-muted-foreground">
-            {sets.length} {sets.length === 1 ? 'set' : 'sets'}
-          </span>
-        </div>
+        {expanded ? (
+          <ChevronDown className="size-4 shrink-0" />
+        ) : (
+          <ChevronRight className="size-4 shrink-0" />
+        )}
+        <CardTitle className="min-w-0 flex-1">{name}</CardTitle>
+        <span className="shrink-0 whitespace-nowrap text-sm text-muted-foreground">
+          {sets.length} {sets.length === 1 ? 'set' : 'sets'}
+        </span>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
