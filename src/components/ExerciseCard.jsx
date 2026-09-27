@@ -89,19 +89,15 @@ export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove 
 
       {expanded && (
         <CardContent className="flex flex-col gap-2">
-          <div className="overflow-x-auto">
-            <div className="flex flex-col gap-2 w-max">
-              {sets.map((set, index) => (
-                <SetRow
-                  key={set.id}
-                  index={index + 1}
-                  set={set}
-                  onChange={(patch) => patchSet(index, patch)}
-                  onDelete={() => deleteSet(index)}
-                />
-              ))}
-            </div>
-          </div>
+          {sets.map((set, index) => (
+            <SetRow
+              key={set.id}
+              index={index + 1}
+              set={set}
+              onChange={(patch) => patchSet(index, patch)}
+              onDelete={() => deleteSet(index)}
+            />
+          ))}
           <Button
             type="button"
             variant="outline"

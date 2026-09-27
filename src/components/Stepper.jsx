@@ -22,9 +22,9 @@ import { Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { clamp } from '@/lib/clamp';
 
-export function Stepper({ label, value, step, min, max, onChange }) {
+export function Stepper({ label, value, step, min, max, onChange, onValueClick, valueClassName = '' }) {
   return (
-    <div className="flex items-center justify-center gap-2 bg-muted px-3 py-2 w-fit rounded-2xl">
+    <div className="flex items-center justify-center gap-2 bg-muted px-3 py-2 w-fit rounded-2xl shadow-lg">
       <Button
         type="button"
         size="icon"
@@ -33,10 +33,15 @@ export function Stepper({ label, value, step, min, max, onChange }) {
       >
         <Minus className="size-4" />
       </Button>
-      <span className="w-15 flex justify-center items-center">
-        <span className="w-fit h-fit pr-1 text-right flex items-center justify-center text-foreground tabular-nums bg-muted rounded-md">{value}</span>
+      <button
+        type="button"
+        onClick={onValueClick}
+        aria-label={onValueClick ? `Collapse ${label}` : undefined}
+        className="w-15 flex justify-center items-center"
+      >
+        <span className={`w-fit h-fit pr-1 text-right flex items-center justify-center text-foreground tabular-nums bg-muted rounded-md ${valueClassName}`}>{value}</span>
         <h3 className="h-fit text-muted-foreground">{label}</h3>
-      </span>
+      </button>
       <Button
         type="button"
         size="icon"

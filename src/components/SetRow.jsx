@@ -17,24 +17,69 @@
 //   - a delete control (shadcn Button, variant ghost/destructive) → calls onDelete
 //   - lay it out as a single tidy row for phone width
 
+import { useEffect, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import { Stepper } from '@/components/Stepper';
+import { EditableStat } from '@/components/EditableStat';
 import { Button } from '@/components/ui/button';
 import { STEP, BOUNDS } from '@/lib/defaults';
 
 export function SetRow({ set, onChange, onDelete, index }) {
+  // Which stat is expanded into a Stepper (only one at a time). null = all collapsed.
+  const [activeField, setActiveField] = useState(null);
+  const rowRef = useRef(null);
+
+  // Toggle a stat open/closed. Tapping the open one (or its number) collapses it.
+  const toggleField = (field) => setActiveField((cur) => (cur === field ? null : field));
+
+  // Collapse when the user taps anywhere outside this row.
+  useEffect(() => {
+    if (!activeField) return;
+    const onPointerDown = (e) => {
+      if (!rowRef.current?.contains(e.target)) setActiveField(null);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [activeField]);
+
   return (
-    <div className="flex justify-start items-center gap-2 m-1 w-max">
+    <div ref={rowRef} className="flex justify-start items-center gap-2 m-1">
       <span className="w-5 shrink-0">{index}.</span>
-      <Stepper label="lb" value={set.weight} step={STEP.weight} min={BOUNDS.weight.min} max={BOUNDS.weight.max} onChange={(v) => onChange({ weight: v })} />
-      <Stepper label="reps" value={set.reps} step={STEP.reps} min={BOUNDS.reps.min} max={BOUNDS.reps.max} onChange={(v) => onChange({ reps: v })} />
-      <Stepper label="RPE" value={set.rpe} step={STEP.rpe} min={BOUNDS.rpe.min} max={BOUNDS.rpe.max} onChange={(v) => onChange({ rpe: v })} />
+      <EditableStat
+        label="lb"
+        value={set.weight}
+        step={STEP.weight}
+        min={BOUNDS.weight.min}
+        max={BOUNDS.weight.max}
+        active={activeField === 'weight'}
+        onActivate={() => toggleField('weight')}
+        onChange={(v) => onChange({ weight: v })}
+      />
+      <EditableStat
+        label="reps"
+        value={set.reps}
+        step={STEP.reps}
+        min={BOUNDS.reps.min}
+        max={BOUNDS.reps.max}
+        active={activeField === 'reps'}
+        onActivate={() => toggleField('reps')}
+        onChange={(v) => onChange({ reps: v })}
+      />
+      <EditableStat
+        label="RPE"
+        value={set.rpe}
+        step={STEP.rpe}
+        min={BOUNDS.rpe.min}
+        max={BOUNDS.rpe.max}
+        active={activeField === 'rpe'}
+        onActivate={() => toggleField('rpe')}
+        onChange={(v) => onChange({ rpe: v })}
+      />
       <Button
         type="button"
         size="icon"
         onClick={onDelete}
         aria-label={`Delete set ${index}`}
-        className="shrink-0 bg-destructive text-white hover:bg-destructive/90"
+        className="shrink-0 bg-destructive text-white hover:bg-destructive/90 ml-auto"
       >
         <Trash2 className="size-4" />
       </Button>
