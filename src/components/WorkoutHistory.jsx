@@ -1,10 +1,12 @@
 // WorkoutHistory — read-only list of past workouts, newest first, grouped by day.
-// Each day shows its date heading, then its exercises and their sets
-// (weight lb × reps, RPE if present). No inline editing in v1 — just a compact log.
+// Each day is a collapsible section: tap the date heading to expand/collapse its
+// exercises and sets (weight lb × reps, RPE if present). Collapsed by default with
+// a compact summary. No inline editing in v1.
 // Data comes from workoutRepo.fetchWorkoutHistory; loading/error/empty states mirror
 // the pattern in useWorkout.js.
 
 import { useEffect, useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { fetchWorkoutHistory } from '@/lib/workoutRepo';
@@ -18,6 +20,64 @@ function formatDate(isoDate) {
     month: 'short',
     day: 'numeric',
   });
+}
+
+// A short summary for the collapsed state, e.g. '5 exercises · 18 sets'.
+function summarize(workout) {
+  const exCount = workout.exercises.length;
+  const setCount = workout.exercises.reduce((n, ex) => n + ex.sets.length, 0);
+  const ex = `${exCount} exercise${exCount === 1 ? '' : 's'}`;
+  const st = `${setCount} set${setCount === 1 ? '' : 's'}`;
+  return `${ex} · ${st}`;
+}
+
+function WorkoutDay({ workout }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-2 text-left"
+        aria-expanded={expanded}
+      >
+        {expanded ? (
+          <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+        ) : (
+          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+        )}
+        <span className="text-sm font-semibold text-foreground">
+          {formatDate(workout.date)}
+          {workout.name ? ` · ${workout.name}` : ''}
+        </span>
+        <span className="text-xs text-muted-foreground">{summarize(workout)}</span>
+      </button>
+
+      {expanded &&
+        workout.exercises.map((exercise) => (
+          <Card key={exercise.id} className="w-full">
+            <CardHeader>
+              <CardTitle>{exercise.name}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1">
+              {exercise.sets.map((set, index) => (
+                <div
+                  key={set.id}
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <span className="w-5 shrink-0">{index + 1}.</span>
+                  <span className="text-foreground">
+                    {set.weight} lb × {set.reps}
+                  </span>
+                  {set.rpe != null && <span>RPE {set.rpe}</span>}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+    </div>
+  );
 }
 
 export function WorkoutHistory() {
@@ -58,40 +118,11 @@ export function WorkoutHistory() {
 
   return (
     <div className="flex flex-col gap-4">
-      {workouts.map((workout) => (
-        <div key={workout.id} className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-muted-foreground">
-            {formatDate(workout.date)}
-            {workout.name ? ` · ${workout.name}` : ''}
-          </h2>
-
-          {workout.exercises.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No sets logged.</p>
-          ) : (
-            workout.exercises.map((exercise) => (
-              <Card key={exercise.id} className="w-full">
-                <CardHeader>
-                  <CardTitle>{exercise.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-1">
-                  {exercise.sets.map((set, index) => (
-                    <div
-                      key={set.id}
-                      className="flex items-center gap-2 text-sm text-muted-foreground"
-                    >
-                      <span className="w-5 shrink-0">{index + 1}.</span>
-                      <span className="text-foreground">
-                        {set.weight} lb × {set.reps}
-                      </span>
-                      {set.rpe != null && <span>RPE {set.rpe}</span>}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      ))}
+      {workouts
+        .filter((w) => w.exercises.length > 0)
+        .map((workout) => (
+          <WorkoutDay key={workout.id} workout={workout} />
+        ))}
     </div>
   );
 }
