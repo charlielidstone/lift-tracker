@@ -17,7 +17,9 @@
 //   - a delete control (shadcn Button, variant ghost/destructive) → calls onDelete
 //   - lay it out as a single tidy row for phone width
 
+import { Trash2 } from 'lucide-react';
 import { Stepper } from '@/components/Stepper';
+import { Button } from '@/components/ui/button';
 import { STEP, BOUNDS } from '@/lib/defaults';
 
 export function SetRow({ set, onChange, onDelete, index }) {
@@ -27,14 +29,15 @@ export function SetRow({ set, onChange, onDelete, index }) {
       <Stepper label="lb" value={set.weight} step={STEP.weight} min={BOUNDS.weight.min} max={BOUNDS.weight.max} onChange={(v) => onChange({ weight: v })} />
       <Stepper label="reps" value={set.reps} step={STEP.reps} min={BOUNDS.reps.min} max={BOUNDS.reps.max} onChange={(v) => onChange({ reps: v })} />
       <Stepper label="RPE" value={set.rpe} step={STEP.rpe} min={BOUNDS.rpe.min} max={BOUNDS.rpe.max} onChange={(v) => onChange({ rpe: v })} />
-      <button
+      <Button
         type="button"
-        className="text-foreground hover:text-destructive/80 transition-colors shrink-0"
+        size="icon"
         onClick={onDelete}
         aria-label={`Delete set ${index}`}
+        className="shrink-0 bg-destructive text-white hover:bg-destructive/90"
       >
-        Delete
-      </button>
+        <Trash2 className="size-4" />
+      </Button>
     </div>
   );
 }

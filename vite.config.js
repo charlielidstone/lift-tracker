@@ -11,4 +11,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    host: true,
+    // Allow Cloudflare quick-tunnel hosts so the phone preview works.
+    allowedHosts: ['.trycloudflare.com'],
+  },
 });

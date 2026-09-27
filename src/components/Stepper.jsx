@@ -18,29 +18,32 @@
 //     (import { Button } from '@/components/ui/button') sized generously, e.g. size icon
 //   - consider press-and-hold to repeat later; not needed for v1
 
+import { Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { clamp } from '@/lib/clamp';
 
 export function Stepper({ label, value, step, min, max, onChange }) {
   return (
-    <div className="flex items-center justify-center gap-2 bg-muted p-3 w-fit rounded-2xl">
-      <h3 className="h-fit text-muted-foreground">{label}</h3>
+    <div className="flex items-center justify-center gap-2 bg-muted px-3 py-2 w-fit rounded-2xl">
       <Button
         type="button"
         size="icon"
         onClick={() => onChange(clamp(value - step, min, max))}
         aria-label={`Decrease ${label}`}
       >
-        −
+        <Minus className="size-4" />
       </Button>
-      <span className="w-8 h-8 text-center flex items-center justify-center text-foreground tabular-nums bg-muted rounded-md">{value}</span>
+      <span className="w-15 flex justify-center items-center">
+        <span className="w-fit h-fit pr-1 text-right flex items-center justify-center text-foreground tabular-nums bg-muted rounded-md">{value}</span>
+        <h3 className="h-fit text-muted-foreground">{label}</h3>
+      </span>
       <Button
         type="button"
         size="icon"
         onClick={() => onChange(clamp(value + step, min, max))}
         aria-label={`Increase ${label}`}
       >
-        +
+        <Plus className="size-4" />
       </Button>
     </div>
   );

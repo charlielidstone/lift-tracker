@@ -43,7 +43,11 @@ export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove 
   };
 
   const addSet = () => {
-    const newSet = { id: crypto.randomUUID(), ...DEFAULT_SET };
+    // Copy the previous set's values (weight/reps/rpe) so consecutive sets match;
+    // fall back to DEFAULT_SET for the very first set.
+    const prev = sets[sets.length - 1];
+    const base = prev ? { weight: prev.weight, reps: prev.reps, rpe: prev.rpe } : DEFAULT_SET;
+    const newSet = { id: crypto.randomUUID(), ...base };
     onChange({ ...exercise, sets: [...sets, newSet] });
   };
 
