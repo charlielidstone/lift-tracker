@@ -20,3 +20,7 @@ export const BOUNDS = {
   reps: { min: 1, max: 100 },
   rpe: { min: 1, max: 10 },
 };
+
+// Fixed set of workout types (labels). Stored in workouts.type; the app
+// constrains input to this list. null/unset = unlabeled.
+export const WORKOUT_TYPES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full body', 'Arms'];
