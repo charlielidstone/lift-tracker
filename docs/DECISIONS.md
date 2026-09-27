@@ -46,29 +46,42 @@ Every second of fumbling is a second not resting. Guiding rules:
   so a "did it as planned" set is zero taps to log.
 - **Short list.** Exercises collapse into cards; expand only the one you're working. Keeps
   the screen scannable between sets.
-- **Adjust in place.** Tweak a value without expanding/drilling into a set.
+- **Adjust in place, no reflow.** Each value shows as a compact chip; tap it to reveal the
+  `[–]`/`[+]` stepper as an OVERLAY floating on top of the row — the chips keep their slots so
+  nothing shifts. Tap the number again, or anywhere outside the row, to collapse. The active
+  value enlarges + animates (grow/fade) so it's clear which one you're editing.
+  _Why the overlay:_ fixed rows fit a small phone screen with no horizontal scrolling, and the
+  layout never jumps around as you edit (earlier scroll-the-row approach was replaced).
+- **Guard destructive actions selectively.** Removing an exercise (deletes all its sets) asks
+  for confirmation; deleting a single set does not (cheap to redo, confirmation would nag).
 - **Progressive disclosure.** Advanced input (tap-a-number-to-type for big jumps) comes later;
   v1 is steppers only.
 
 ### UX decisions
 
 6. **Stepper increments:** weight ±5 lb, reps ±1, RPE ±1.
-7. **Fixed defaults for a new set (v1):** weight 100 lb, reps 12, RPE 8.
-   _Why fixed:_ simplest v1. Later: default to last workout's values per exercise.
+7. **Fixed defaults for a new set (v1):** weight 100 lb, reps 12, RPE 8. But **"Add set" copies
+   the previous set's** weight/reps/rpe; defaults apply only to the first set of an exercise.
+   _Why:_ consecutive sets are usually identical → zero taps.
 8. **Tap-to-type on a value:** deferred. Steppers only for v1; add direct entry if the
    steppers prove annoying for big jumps (e.g. 100 → 225).
+9. **Tap-to-edit overlay** (not always-visible steppers): one value editable at a time, opens
+   over the row without reflow. Replaces the earlier "all steppers visible + horizontal scroll".
+10. **Confirm exercise removal**, not set removal (see philosophy above).
 
 ## Component tree
 
 ```
 WorkoutView            -- the session: list of exercises + "add exercise"
-  └─ ExerciseCard      -- one exercise, expand/collapse, its sets + "add set"
-       └─ SetRow       -- one logged set; weight/reps/RPE via steppers + delete
-            └─ Stepper -- reusable atom: label + value + [–]/[+]
+  └─ ExerciseCard      -- one exercise, expand/collapse, its sets + "add set" + remove-confirm
+       └─ SetRow       -- one logged set; row of EditableStats + delete (one active at a time)
+            └─ EditableStat -- chip (collapsed) ⇄ Stepper overlay (active); tap to toggle
+                 └─ Stepper -- reusable atom: [–] value label [+], icon buttons
 ```
 
 - `Stepper` is a pure, reusable UI atom (label, value, step, onChange). Built once, used for
   every adjustable number. Lives in `src/components/`.
+- `EditableStat` wraps a value: compact chip when idle, expands to a `Stepper` overlay on tap.
 - Components hold UI state only; est. 1RM / PR math stays in `src/lib/` (see STANDARDS.md).
 
 ### Architecture

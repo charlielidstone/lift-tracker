@@ -31,7 +31,7 @@ export function EditableStat({ label, value, step, min, max, active, onActivate,
 
       {/* Active editor — overlays on top, centered over the chip, floats over neighbors. */}
       {active && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 origin-center animate-in zoom-in-75 fade-in duration-100 ease-out">
           <Stepper
             label={label}
             value={value}

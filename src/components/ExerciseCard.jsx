@@ -25,6 +25,17 @@
 
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 import { SetRow } from '@/components/SetRow';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DEFAULT_SET } from '@/lib/defaults';
@@ -73,18 +84,37 @@ export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove 
             {sets.length} {sets.length === 1 ? 'set' : 'sets'}
           </span>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove();
-          }}
-          aria-label={`Remove ${name}`}
-        >
-          <X />
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Remove ${name}`}
+            >
+              <X />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove {name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This deletes the exercise and all {sets.length} of its{' '}
+                {sets.length === 1 ? 'set' : 'sets'}. This can't be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={onRemove}
+                className="bg-destructive text-white hover:bg-destructive/90"
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardHeader>
 
       {expanded && (
