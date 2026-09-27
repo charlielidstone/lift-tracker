@@ -74,12 +74,15 @@ async function _getOrCreateTodayWorkout() {
 }
 
 // Load a workout's set_entries and group them into exercise entries (UI shape).
+// Exercises are ordered by creation (the earliest-created set of each exercise
+// fixes its position) → newest exercise at the bottom, stable across reloads.
+// Sets within an exercise are ordered by set_order.
 export async function fetchWorkoutExercises(workoutId) {
   const { data, error } = await supabase
     .from('set_entries')
-    .select('id, weight, reps, rpe, set_order, exercise_id, exercises(name)')
+    .select('id, weight, reps, rpe, set_order, created_at, exercise_id, exercises(name)')
     .eq('workout_id', workoutId)
-    .order('set_order');
+    .order('created_at');
   if (error) throw error;
 
   const byExercise = new Map();
@@ -97,9 +100,17 @@ export async function fetchWorkoutExercises(workoutId) {
       weight: Number(row.weight),
       reps: row.reps,
       rpe: row.rpe == null ? null : Number(row.rpe),
+      setOrder: row.set_order,
     });
   }
-  return [...byExercise.values()];
+  // Order sets within each exercise by set_order (creation order groups exercises,
+  // but sets should read in their logged order).
+  const exercises = [...byExercise.values()];
+  for (const ex of exercises) {
+    ex.sets.sort((a, b) => a.setOrder - b.setOrder);
+    ex.sets.forEach((s) => delete s.setOrder);
+  }
+  return exercises;
 }
 
 // Load recent workouts (newest first), each with its sets grouped into exercise
