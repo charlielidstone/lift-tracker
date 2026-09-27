@@ -93,6 +93,27 @@ export async function fetchWorkoutExercises(workoutId) {
   return [...byExercise.values()];
 }
 
+// Load recent workouts (newest first), each with its sets grouped into exercise
+// entries (same UI shape as fetchWorkoutExercises). Read-only history view.
+export async function fetchWorkoutHistory(limit = 30) {
+  if (!isSupabaseConfigured) return [];
+  const { data: workouts, error } = await supabase
+    .from('workouts')
+    .select('id, date, name')
+    .order('date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+
+  const withExercises = await Promise.all(
+    workouts.map(async (workout) => ({
+      ...workout,
+      exercises: await fetchWorkoutExercises(workout.id),
+    })),
+  );
+  return withExercises;
+}
+
 // ── Set entries (the auto-saved unit) ────────────────────────
 
 export async function insertSet({ id, workoutId, exerciseId, weight, reps, rpe, setOrder }) {

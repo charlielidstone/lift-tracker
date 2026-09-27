@@ -72,11 +72,13 @@ Every second of fumbling is a second not resting. Guiding rules:
 ## Component tree
 
 ```
-WorkoutView            -- the session: list of exercises + "add exercise"
-  └─ ExerciseCard      -- one exercise, expand/collapse, its sets + "add set" + remove-confirm
-       └─ SetRow       -- one logged set; row of EditableStats + delete (one active at a time)
-            └─ EditableStat -- chip (collapsed) ⇄ Stepper overlay (active); tap to toggle
-                 └─ Stepper -- reusable atom: [–] value label [+], icon buttons
+App                    -- Today | History tab switch (useState, no router)
+  ├─ WorkoutView       -- the session: list of exercises + "add exercise"
+  │    └─ ExerciseCard -- one exercise, expand/collapse, its sets + "add set" + remove-confirm
+  │         └─ SetRow  -- one logged set; row of EditableStats + delete (one active at a time)
+  │              └─ EditableStat -- chip (collapsed) ⇄ Stepper overlay (active); tap to toggle
+  │                   └─ Stepper -- reusable atom: [–] value label [+], icon buttons
+  └─ WorkoutHistory    -- read-only past workouts, newest first, grouped by day (Cards)
 ```
 
 - `Stepper` is a pure, reusable UI atom (label, value, step, onChange). Built once, used for
