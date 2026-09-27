@@ -23,6 +23,14 @@ export async function fetchExercises() {
 
 // ── Workouts ─────────────────────────────────────────────────
 
+// The current logged-in user's id, or null when not authenticated (single-user
+// dev mode). New rows are stamped with this so they're owned once RLS is locked.
+async function currentUserId() {
+  if (!isSupabaseConfigured) return null;
+  const { data } = await supabase.auth.getUser();
+  return data?.user?.id ?? null;
+}
+
 // Get (or create) today's workout, with its sets grouped into exercise entries.
 // Guards against concurrent callers (e.g. React StrictMode's double-invoked effect)
 // by sharing a single in-flight promise — otherwise two "create" calls race and
@@ -43,7 +51,7 @@ async function _getOrCreateTodayWorkout() {
 
   let { data: workout, error } = await supabase
     .from('workouts')
-    .select('id, date, name, notes')
+    .select('id, date, name, notes, type')
     .eq('date', today)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -51,10 +59,11 @@ async function _getOrCreateTodayWorkout() {
   if (error) throw error;
 
   if (!workout) {
+    const uid = await currentUserId();
     const inserted = await supabase
       .from('workouts')
-      .insert({ date: today })
-      .select('id, date, name, notes')
+      .insert(uid ? { date: today, user_id: uid } : { date: today })
+      .select('id, date, name, notes, type')
       .single();
     if (inserted.error) throw inserted.error;
     workout = inserted.data;
@@ -99,7 +108,7 @@ export async function fetchWorkoutHistory(limit = 30) {
   if (!isSupabaseConfigured) return [];
   const { data: workouts, error } = await supabase
     .from('workouts')
-    .select('id, date, name')
+    .select('id, date, name, type')
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -112,6 +121,16 @@ export async function fetchWorkoutHistory(limit = 30) {
     })),
   );
   return withExercises;
+}
+
+// Set (or clear) a workout's type label. Pass null to clear.
+export async function setWorkoutType(workoutId, type) {
+  if (!isSupabaseConfigured) return;
+  const { error } = await supabase
+    .from('workouts')
+    .update({ type })
+    .eq('id', workoutId);
+  if (error) throw error;
 }
 
 // ── Set entries (the auto-saved unit) ────────────────────────

@@ -38,11 +38,18 @@ from typing import NoReturn
 
 # ── Credentials ──────────────────────────────────────────────
 def load_env():
-    """Read VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY from .env.local (repo root)."""
+    """Read Supabase URL + an API key from .env.local (repo root).
+
+    Prefers SUPABASE_SERVICE_ROLE_KEY (full access, bypasses RLS — this is an admin
+    CLI, so that's intended) and falls back to VITE_SUPABASE_ANON_KEY. NOTE: once
+    RLS is locked to auth.uid(), the anon key (no login session) can no longer
+    read/write — the service_role key is required for the CLI to keep working.
+    """
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env_path = os.path.join(root, ".env.local")
     url = os.environ.get("VITE_SUPABASE_URL")
-    key = os.environ.get("VITE_SUPABASE_ANON_KEY")
+    service = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    anon = os.environ.get("VITE_SUPABASE_ANON_KEY")
     if os.path.exists(env_path):
         with open(env_path) as f:
             for line in f:
@@ -50,13 +57,17 @@ def load_env():
                 if not line or line.startswith("#") or "=" not in line:
                     continue
                 k, v = line.split("=", 1)
+                k = k.strip()
                 v = v.strip().strip('"').strip("'")
-                if k.strip() == "VITE_SUPABASE_URL" and not url:
+                if k == "VITE_SUPABASE_URL" and not url:
                     url = v
-                elif k.strip() == "VITE_SUPABASE_ANON_KEY" and not key:
-                    key = v
+                elif k == "SUPABASE_SERVICE_ROLE_KEY" and not service:
+                    service = v
+                elif k == "VITE_SUPABASE_ANON_KEY" and not anon:
+                    anon = v
+    key = service or anon
     if not url or not key:
-        die("Missing Supabase credentials — set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in .env.local")
+        die("Missing Supabase credentials — set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or VITE_SUPABASE_ANON_KEY) in .env.local")
     return url.rstrip("/"), key
 
 
