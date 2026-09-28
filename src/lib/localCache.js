@@ -89,3 +89,17 @@ export function loadSyncedSnapshot(userId, date, storage) {
   const entry = readJSON(storage, syncedKey(userId, date));
   return entry?.rows ?? null;
 }
+
+// ── Workout history (read-only cache for offline viewing) ────
+export function historyKey(userId) {
+  return `${NS}:history:${userId || 'anon'}`;
+}
+
+export function saveHistoryCache(userId, workouts, storage) {
+  return writeJSON(storage, historyKey(userId), { workouts, cachedAt: Date.now() });
+}
+
+export function loadHistoryCache(userId, storage) {
+  const entry = readJSON(storage, historyKey(userId));
+  return entry?.workouts ?? null;
+}

@@ -9,6 +9,8 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth';
+import { loadHistoryCache, saveHistoryCache } from '@/lib/localCache';
 import { fetchWorkoutHistory } from '@/lib/workoutRepo';
 
 // Format an ISO date (YYYY-MM-DD) as e.g. 'Sat, Sep 26'. Parse as local noon so
@@ -85,19 +87,40 @@ function WorkoutDay({ workout }) {
 }
 
 export function WorkoutHistory() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState(null);
+  const [stale, setStale] = useState(false); // showing cached data (offline)
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     let cancelled = false;
+
+    // Hydrate from cache first so history is viewable instantly + offline.
+    // (setState-in-effect is intentional: syncing from an external store.)
+    /* eslint-disable react/set-state-in-effect */
+    const cached = loadHistoryCache(userId);
+    if (cached) {
+      setWorkouts(cached);
+      setLoading(false);
+    }
+    /* eslint-enable react/set-state-in-effect */
+
     (async () => {
       try {
         const data = await fetchWorkoutHistory();
-        if (!cancelled) setWorkouts(data);
+        if (cancelled) return;
+        setWorkouts(data);
+        saveHistoryCache(userId, data);
+        setStale(false);
+        setError(null);
       } catch (e) {
-        if (!cancelled) setError(e);
+        if (cancelled) return;
+        // Offline / server error: keep cached history if we have it, just flag it.
+        if (cached) setStale(true);
+        else setError(e);
         console.error('[WorkoutHistory] load failed', e);
       } finally {
         if (!cancelled) setLoading(false);
@@ -106,7 +129,7 @@ export function WorkoutHistory() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [userId]);
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading workout history…</p>;
@@ -122,6 +145,11 @@ export function WorkoutHistory() {
 
   return (
     <div className="flex flex-col gap-4">
+      {stale && (
+        <p className="rounded-md bg-muted px-3 py-1.5 text-xs text-muted-foreground">
+          📴 Offline — showing your last saved history.
+        </p>
+      )}
       {workouts
         .filter((w) => w.exercises.length > 0)
         .map((workout) => (
