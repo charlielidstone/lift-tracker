@@ -21,9 +21,8 @@ Usage examples:
 
 Add --json to most commands for machine-readable output.
 
-NOTE ON "TODAY": matches the app, which uses the UTC calendar date
-(new Date().toISOString().slice(0,10)). Late-evening Pacific workouts may land on
-the next UTC day; pass --date explicitly to be unambiguous.
+NOTE ON "TODAY": matches the app, which uses the LOCAL calendar date
+(localToday in src/lib/defaults.js). Pass --date explicitly to be unambiguous.
 """
 
 import argparse
@@ -33,7 +32,7 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import NoReturn
 
 # ── Credentials ──────────────────────────────────────────────
@@ -101,8 +100,10 @@ def rest(method, table, *, params=None, body=None, prefer=None):
         die(f"network error: {e.reason}")
 
 
-def today_utc():
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+def today_local():
+    # Local date (matches the app's localToday). NOT UTC — evening Pacific
+    # workouts must not roll to tomorrow.
+    return datetime.now().astimezone().strftime("%Y-%m-%d")
 
 
 # ── Exercise resolution ──────────────────────────────────────
@@ -182,7 +183,7 @@ def _print_workout(w, sets):
 
 
 def cmd_today(args):
-    date = args.date or today_utc()
+    date = args.date or today_local()
     rows = rest("GET", "workouts", params={
         "date": f"eq.{date}", "select": "*", "order": "created_at.desc", "limit": "1",
     })
@@ -200,7 +201,7 @@ def cmd_today(args):
 
 
 def cmd_log(args):
-    date = args.date or today_utc()
+    date = args.date or today_local()
     ex = resolve_exercise(args.exercise)
     w = get_or_create_workout(date)
     # next set_order for this exercise within this workout
@@ -249,7 +250,7 @@ def cmd_sets(args):
 
 def cmd_workout(args):
     if args.action == "rm":
-        date = args.date or today_utc()
+        date = args.date or today_local()
         rest("DELETE", "workouts", params={"date": f"eq.{date}"})
         print(f"deleted workout(s) for {date}")
 

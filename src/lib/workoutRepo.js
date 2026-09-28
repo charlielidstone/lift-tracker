@@ -9,6 +9,7 @@
 // The UI groups set_entries by exercise; these helpers translate both ways.
 
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { localToday } from '@/lib/defaults';
 
 // ── Exercise library ─────────────────────────────────────────
 export async function fetchExercises() {
@@ -47,7 +48,7 @@ export async function getOrCreateTodayWorkout() {
 }
 
 async function _getOrCreateTodayWorkout() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localToday();
 
   let { data: workout, error } = await supabase
     .from('workouts')

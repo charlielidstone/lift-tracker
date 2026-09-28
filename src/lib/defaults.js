@@ -24,3 +24,13 @@ export const BOUNDS = {
 // Fixed set of workout types (labels). Stored in workouts.type; the app
 // constrains input to this list. null/unset = unlabeled.
 export const WORKOUT_TYPES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full body', 'Arms'];
+
+// "Today" as a YYYY-MM-DD string in the user's LOCAL timezone.
+// NOT toISOString() — that's UTC, which rolls over to tomorrow in the evening
+// for anyone west of UTC (e.g. Pacific time). Uses local Y/M/D directly.
+export function localToday(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
