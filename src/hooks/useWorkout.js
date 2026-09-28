@@ -10,8 +10,15 @@
 // stays optimistic and responsive.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_SET } from '@/lib/defaults';
+import { DEFAULT_SET, localToday } from '@/lib/defaults';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  loadLibraryCache,
+  loadWorkoutCache,
+  saveLibraryCache,
+  saveWorkoutCache,
+} from '@/lib/localCache';
 import {
   deleteExerciseSets,
   deleteSet,
@@ -55,6 +62,10 @@ function rowChanged(a, b) {
 }
 
 export function useWorkout() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const today = localToday();
+
   const [exercises, setExercises] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [library, setLibrary] = useState([]);
@@ -66,24 +77,49 @@ export function useWorkout() {
   const workoutIdRef = useRef(null);
   const savedRef = useRef(new Map()); // setId → last-persisted row
   const timerRef = useRef(null);
+  const hydratedRef = useRef(false); // cache hydration done → cache writes allowed
 
-  // ── Initial load: exercise library + today's workout ──
+  // ── Initial load: cache first (instant, offline-safe), then server ──
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     let cancelled = false;
+
+    // 1. Synchronous hydrate from localStorage so a reload — even offline —
+    //    shows the workout immediately without waiting on the network.
+    //    (setState-in-effect is intentional: syncing from an external store.)
+    /* eslint-disable react/set-state-in-effect */
+    const cachedLib = loadLibraryCache(userId);
+    const cachedWorkout = loadWorkoutCache(userId, today);
+    if (cachedLib) setLibrary(cachedLib);
+    if (cachedWorkout) {
+      workoutIdRef.current = cachedWorkout.workoutId ?? null;
+      setWorkoutTypeState(cachedWorkout.type ?? null);
+      setFinishedState(Boolean(cachedWorkout.finished));
+      setExercises(cachedWorkout.exercises ?? []);
+      savedRef.current = snapshotSets(cachedWorkout.exercises ?? []);
+      setLoading(false); // we have something to show; server will reconcile
+    }
+    /* eslint-enable react/set-state-in-effect */
+    hydratedRef.current = true;
+
+    // 2. Reconcile with the server (authoritative when online).
     (async () => {
       try {
         const [lib, workout] = await Promise.all([fetchExercises(), getOrCreateTodayWorkout()]);
         if (cancelled) return;
         setLibrary(lib);
+        saveLibraryCache(userId, lib);
         workoutIdRef.current = workout.id;
         setWorkoutTypeState(workout.type ?? null);
         setFinishedState(Boolean(workout.finished_at));
         setExercises(workout.exercises);
         savedRef.current = snapshotSets(workout.exercises);
       } catch (e) {
-        if (!cancelled) setError(e);
-        console.error('[useWorkout] load failed', e);
+        // Offline / server unreachable: keep the cached view, don't surface a
+        // hard error if we already have something on screen.
+        if (cancelled) return;
+        if (!cachedWorkout) setError(e);
+        console.error('[useWorkout] server load failed (using cache)', e);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -91,7 +127,7 @@ export function useWorkout() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [userId, today]);
 
   // ── Diff current sets against the saved snapshot and persist deltas ──
   const flush = useCallback(async () => {
@@ -149,6 +185,19 @@ export function useWorkout() {
     timerRef.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
     return () => clearTimeout(timerRef.current);
   }, [exercises, flush, loading]);
+
+  // Write-through cache: mirror current state to localStorage on every change so
+  // an offline reload restores exactly what's on screen (independent of the debounced
+  // server flush above). Cheap + synchronous; runs only after hydration.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !hydratedRef.current) return;
+    saveWorkoutCache(userId, today, {
+      workoutId: workoutIdRef.current,
+      type,
+      finished,
+      exercises,
+    });
+  }, [exercises, type, finished, userId, today]);
 
   // ── Mutations (optimistic; persistence happens via the effect above) ──
   const addExercise = useCallback((libraryExercise) => {
