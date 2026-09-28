@@ -5,6 +5,7 @@ import { WorkoutHistory } from './components/WorkoutHistory';
 import { Login } from './components/Login';
 import { Button } from '@/components/ui/button';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { PWAUpdater } from '@/components/PWAUpdater';
 
 const TABS = [
   { id: 'today', label: 'Today' },
@@ -81,6 +82,7 @@ function App() {
   return (
     <AuthProvider>
       <Gate />
+      <PWAUpdater />
     </AuthProvider>
   );
 }
