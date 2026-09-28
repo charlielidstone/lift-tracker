@@ -97,3 +97,32 @@ Kept in sync as structure evolves.
 - Rep-max PR board (best weight per rep count)
 - Rest timer
 - Offline PWA
+
+## Offline / local-first sync (implemented)
+
+Goal: log a whole workout at the gym with no/spotty signal; sync when back online.
+
+- **Two-slice design.** Slice 1: localStorage cache (`lib/localCache.js`) — instant,
+  offline-safe reload. Slice 2: an outbox that pushes edits made offline once the
+  connection returns.
+- **Three cache keys, namespaced by `user + date`:**
+  - `workout:*` — the DESIRED state (what's on screen), write-through on every change.
+  - `synced:*` — the last SERVER-CONFIRMED snapshot (the outbox BASELINE).
+  - `library:*` — the exercise library.
+- **Why a separate synced snapshot?** The pending outbox = `diff(desired, synced)`.
+  If we only cached desired state, an offline reload would rehydrate the baseline
+  FROM desired → diff empty → offline edits silently lost. Persisting the synced
+  baseline separately makes pending edits survive a reload. (Proven by
+  `offlineOutbox.test.js`.)
+- **Diff logic is pure + tested** (`lib/syncDiff.js`): `diffOps` → inserts/updates/
+  setDeletes/exerciseDeletes; a whole-exercise removal collapses to one delete.
+- **Flush** runs debounced (700ms) AND on the `online` event (reconnect drains the
+  outbox). Baseline only advances after writes succeed; on failure the pending flag
+  stays set so the next edit/reconnect retries. Client-generated UUIDs mean retries
+  are idempotent-ish (same ids).
+- **Conflict policy:** last-write-wins, single-user assumption. If the server has a
+  copy AND there are local pending edits, local desired state wins (we push the diff);
+  otherwise the server copy is adopted. Multi-device concurrent editing is out of scope.
+- **UI:** offline banner + "Syncing…" indicator (`online` / `pendingSync` from the hook).
+- **Still TODO:** PWA service worker so the app SHELL (code/assets) loads with no
+  connection — currently offline works only after the app has been opened once online.

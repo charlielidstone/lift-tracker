@@ -15,10 +15,13 @@ import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import {
   loadLibraryCache,
+  loadSyncedSnapshot,
   loadWorkoutCache,
   saveLibraryCache,
+  saveSyncedSnapshot,
   saveWorkoutCache,
 } from '@/lib/localCache';
+import { diffOps, hasPendingOps, mapToRows, rowsToMap, snapshotSets } from '@/lib/syncDiff';
 import {
   deleteExerciseSets,
   deleteSet,
@@ -33,34 +36,6 @@ import {
 const SAVE_DEBOUNCE_MS = 700;
 const newSet = () => ({ id: crypto.randomUUID(), ...DEFAULT_SET });
 
-// Flatten UI exercises → a map of setId → the row we'd persist.
-function snapshotSets(exercises) {
-  const map = new Map();
-  for (const ex of exercises) {
-    ex.sets.forEach((set, i) => {
-      map.set(set.id, {
-        id: set.id,
-        exerciseId: ex.exerciseId,
-        weight: set.weight,
-        reps: set.reps,
-        rpe: set.rpe ?? null,
-        setOrder: i,
-      });
-    });
-  }
-  return map;
-}
-
-function rowChanged(a, b) {
-  return (
-    a.weight !== b.weight ||
-    a.reps !== b.reps ||
-    a.rpe !== b.rpe ||
-    a.setOrder !== b.setOrder ||
-    a.exerciseId !== b.exerciseId
-  );
-}
-
 export function useWorkout() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -73,11 +48,29 @@ export function useWorkout() {
   const [finished, setFinishedState] = useState(false);
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const [error, setError] = useState(null);
+  const [online, setOnline] = useState(() =>
+    typeof navigator === 'undefined' ? true : navigator.onLine,
+  );
+  const [pendingSync, setPendingSync] = useState(false);
 
   const workoutIdRef = useRef(null);
-  const savedRef = useRef(new Map()); // setId → last-persisted row
+  const savedRef = useRef(new Map()); // setId → last-SERVER-CONFIRMED row
   const timerRef = useRef(null);
   const hydratedRef = useRef(false); // cache hydration done → cache writes allowed
+  const exercisesRef = useRef(exercises); // latest exercises for reconnect flush
+  useEffect(() => {
+    exercisesRef.current = exercises;
+  }, [exercises]);
+
+  // Persist savedRef both in memory and to localStorage so the outbox baseline
+  // survives an offline reload (else local edits look already-saved and get lost).
+  const commitSynced = useCallback(
+    (map) => {
+      savedRef.current = map;
+      saveSyncedSnapshot(userId, today, mapToRows(map));
+    },
+    [userId, today],
+  );
 
   // ── Initial load: cache first (instant, offline-safe), then server ──
   useEffect(() => {
@@ -90,13 +83,18 @@ export function useWorkout() {
     /* eslint-disable react/set-state-in-effect */
     const cachedLib = loadLibraryCache(userId);
     const cachedWorkout = loadWorkoutCache(userId, today);
+    const cachedSynced = loadSyncedSnapshot(userId, today);
     if (cachedLib) setLibrary(cachedLib);
     if (cachedWorkout) {
       workoutIdRef.current = cachedWorkout.workoutId ?? null;
       setWorkoutTypeState(cachedWorkout.type ?? null);
       setFinishedState(Boolean(cachedWorkout.finished));
       setExercises(cachedWorkout.exercises ?? []);
-      savedRef.current = snapshotSets(cachedWorkout.exercises ?? []);
+      // Baseline = last server-confirmed snapshot (NOT the desired state), so any
+      // edits made offline are still detected as pending after this reload.
+      savedRef.current = cachedSynced
+        ? rowsToMap(cachedSynced)
+        : snapshotSets(cachedWorkout.exercises ?? []);
       setLoading(false); // we have something to show; server will reconcile
     }
     /* eslint-enable react/set-state-in-effect */
@@ -112,8 +110,17 @@ export function useWorkout() {
         workoutIdRef.current = workout.id;
         setWorkoutTypeState(workout.type ?? null);
         setFinishedState(Boolean(workout.finished_at));
-        setExercises(workout.exercises);
-        savedRef.current = snapshotSets(workout.exercises);
+        // If there are pending offline edits, DON'T clobber them with the server
+        // copy — keep local desired state and let flush() push the diff up. Only
+        // adopt the server's exercises when nothing is pending.
+        const serverSnap = snapshotSets(workout.exercises);
+        const pending = cachedWorkout && hasPendingOps(savedRef.current, serverSnap)
+          ? hasPendingOps(snapshotSets(cachedWorkout.exercises ?? []), serverSnap)
+          : false;
+        if (!pending) {
+          setExercises(workout.exercises);
+        }
+        commitSynced(serverSnap);
       } catch (e) {
         // Offline / server unreachable: keep the cached view, don't surface a
         // hard error if we already have something on screen.
@@ -127,64 +134,73 @@ export function useWorkout() {
     return () => {
       cancelled = true;
     };
-  }, [userId, today]);
+  }, [userId, today, commitSynced]);
 
-  // ── Diff current sets against the saved snapshot and persist deltas ──
+  // ── Flush pending ops to the server (used by debounce + reconnect) ──
+  // Reads exercises from a ref so a single stable callback can be triggered by
+  // the reconnect listener without stale closures.
   const flush = useCallback(async () => {
     if (!isSupabaseConfigured || !workoutIdRef.current) return;
     const workoutId = workoutIdRef.current;
-    const desired = snapshotSets(exercises);
+    const desired = snapshotSets(exercisesRef.current);
     const saved = savedRef.current;
-    const ops = [];
+    const { inserts, updates, setDeletes, exerciseDeletes } = diffOps(desired, saved);
 
-    for (const [id, row] of desired) {
-      const prev = saved.get(id);
-      if (!prev) {
-        ops.push(insertSet({ ...row, workoutId }));
-      } else if (rowChanged(prev, row)) {
-        ops.push(
-          updateSet(id, {
-            weight: row.weight,
-            reps: row.reps,
-            rpe: row.rpe,
-            set_order: row.setOrder,
-          }),
-        );
-      }
-    }
-    // Deletions: individual set removed vs. whole exercise removed.
-    const survivingExercises = new Set(exercises.map((e) => e.exerciseId));
-    const handledExercises = new Set();
-    for (const [id, row] of saved) {
-      if (desired.has(id)) continue;
-      if (!survivingExercises.has(row.exerciseId)) {
-        // whole exercise gone — one bulk delete per exercise
-        if (!handledExercises.has(row.exerciseId)) {
-          handledExercises.add(row.exerciseId);
-          ops.push(deleteExerciseSets(workoutId, row.exerciseId));
-        }
-      } else {
-        ops.push(deleteSet(id));
-      }
-    }
+    const ops = [
+      ...inserts.map((row) => insertSet({ ...row, workoutId })),
+      ...updates.map((row) =>
+        updateSet(row.id, {
+          weight: row.weight,
+          reps: row.reps,
+          rpe: row.rpe,
+          set_order: row.setOrder,
+        }),
+      ),
+      ...exerciseDeletes.map((exerciseId) => deleteExerciseSets(workoutId, exerciseId)),
+      ...setDeletes.map((id) => deleteSet(id)),
+    ];
 
-    if (ops.length === 0) return;
+    if (ops.length === 0) {
+      setPendingSync(false);
+      return;
+    }
     try {
       await Promise.all(ops);
-      savedRef.current = desired; // commit snapshot only after writes succeed
+      commitSynced(desired); // baseline advances only after writes succeed
+      setPendingSync(false);
+      setError(null);
     } catch (e) {
-      setError(e);
-      console.error('[useWorkout] save failed', e);
+      // Offline / server error: keep the pending flag so the reconnect listener
+      // (and next edit) retries. Edits are safe in the write-through cache.
+      setPendingSync(true);
+      console.error('[useWorkout] save failed (will retry)', e);
     }
-  }, [exercises]);
+  }, [commitSynced]);
 
   // Debounced auto-save whenever exercises change.
   useEffect(() => {
     if (!isSupabaseConfigured || loading) return;
+    setPendingSync(hasPendingOps(snapshotSets(exercises), savedRef.current));
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(flush, SAVE_DEBOUNCE_MS);
     return () => clearTimeout(timerRef.current);
   }, [exercises, flush, loading]);
+
+  // ── Online/offline: reflect status and flush the outbox on reconnect ──
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const goOnline = () => {
+      setOnline(true);
+      flush(); // drain any edits made while offline
+    };
+    const goOffline = () => setOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, [flush]);
 
   // Write-through cache: mirror current state to localStorage on every change so
   // an offline reload restores exactly what's on screen (independent of the debounced
@@ -250,6 +266,8 @@ export function useWorkout() {
     library,
     loading,
     error,
+    online,
+    pendingSync,
     type,
     setType,
     finished,

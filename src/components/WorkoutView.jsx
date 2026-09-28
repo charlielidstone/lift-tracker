@@ -17,6 +17,8 @@ export function WorkoutView() {
     library,
     loading,
     error,
+    online,
+    pendingSync,
     type,
     setType,
     finished,
@@ -39,6 +41,16 @@ export function WorkoutView() {
         <p className="text-sm text-destructive">
           Couldn't sync with the server — changes may not be saved.
         </p>
+      )}
+
+      {/* Sync status — offline edits are cached and pushed on reconnect. */}
+      {!online && (
+        <p className="rounded-md bg-muted px-3 py-1.5 text-xs text-muted-foreground">
+          📴 Offline — changes are saved on this device and will sync when you're back online.
+        </p>
+      )}
+      {online && pendingSync && (
+        <p className="text-xs text-muted-foreground">Syncing…</p>
       )}
 
       {/* Locked banner + unlock. */}

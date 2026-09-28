@@ -71,3 +71,21 @@ export function loadLibraryCache(userId, storage) {
   const entry = readJSON(storage, libraryKey(userId));
   return entry?.library ?? null;
 }
+
+// ── Synced snapshot (outbox baseline) ────────────────────────
+// The set-rows the SERVER last confirmed. Kept separate from the desired-state
+// workout cache so that, after an offline reload, diff(desired, synced) still
+// yields the pending un-synced writes (the outbox). Without this, an offline
+// reload would treat local edits as already-saved and silently drop them.
+export function syncedKey(userId, date) {
+  return `${NS}:synced:${userId || 'anon'}:${date}`;
+}
+
+export function saveSyncedSnapshot(userId, date, rows, storage) {
+  return writeJSON(storage, syncedKey(userId, date), { rows, cachedAt: Date.now() });
+}
+
+export function loadSyncedSnapshot(userId, date, storage) {
+  const entry = readJSON(storage, syncedKey(userId, date));
+  return entry?.rows ?? null;
+}
