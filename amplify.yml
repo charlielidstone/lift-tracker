@@ -1,0 +1,21 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        # Amplify exposes console env vars to the build shell, but Vite only inlines
+        # VITE_* vars that exist at build time. Write them into .env.production so
+        # `vite build` picks them up reliably. (VITE_* are public by design — the
+        # anon key is a publishable key; RLS protects the data.)
+        - env | grep -e '^VITE_' >> .env.production || true
+        - npm run build
+  artifacts:
+    baseDirectory: dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
