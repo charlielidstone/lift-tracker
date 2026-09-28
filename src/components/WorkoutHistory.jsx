@@ -49,8 +49,12 @@ function WorkoutDay({ workout }) {
         )}
         <span className="text-sm font-semibold text-foreground">
           {formatDate(workout.date)}
-          {workout.name ? ` · ${workout.name}` : ''}
         </span>
+        {workout.type && (
+          <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
+            {workout.type}
+          </span>
+        )}
         <span className="text-xs text-muted-foreground">{summarize(workout)}</span>
       </button>
 
