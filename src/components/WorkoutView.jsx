@@ -46,7 +46,7 @@ export function WorkoutView() {
       {/* Sync status — offline edits are cached and pushed on reconnect. */}
       {!online && (
         <p className="rounded-md bg-muted px-3 py-1.5 text-xs text-muted-foreground">
-          📴 Offline — changes are saved on this device and will sync when you're back online.
+          Offline — changes are saved on this device and will sync when you're back online.
         </p>
       )}
       {online && pendingSync && (
@@ -57,7 +57,7 @@ export function WorkoutView() {
       {finished && (
         <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2">
           <span className="text-sm font-medium text-foreground">
-            Workout finished — locked 🔒
+            Workout finished — locked
           </span>
           <Button type="button" variant="outline" size="sm" onClick={() => setFinished(false)}>
             Edit workout
