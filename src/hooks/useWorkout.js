@@ -27,6 +27,7 @@ import {
   deleteSet,
   fetchExercises,
   getOrCreateTodayWorkout,
+  insertExercise,
   insertSet,
   setWorkoutFinished as persistWorkoutFinished,
   setWorkoutType as persistWorkoutType,
@@ -219,16 +220,49 @@ export function useWorkout() {
   }, [exercises, type, finished, userId, today]);
 
   // ── Mutations (optimistic; persistence happens via the effect above) ──
+  // Add a library exercise to today. If it's already in the workout, just expand
+  // it instead of adding a duplicate card.
   const addExercise = useCallback((libraryExercise) => {
-    const entry = {
-      id: crypto.randomUUID(),
-      exerciseId: libraryExercise.id,
-      name: libraryExercise.name,
-      sets: [newSet()], // zero-tap logged set (design philosophy)
-    };
-    setExercises((prev) => [...prev, entry]);
-    setExpandedId(entry.id);
+    const exId = libraryExercise.id ?? libraryExercise.exerciseId;
+    let targetId = null;
+    setExercises((prev) => {
+      const existing = prev.find((e) => e.exerciseId === exId);
+      if (existing) {
+        targetId = existing.id;
+        return prev; // no dupe
+      }
+      const entry = {
+        id: crypto.randomUUID(),
+        exerciseId: exId,
+        name: libraryExercise.name,
+        sets: [newSet()], // zero-tap logged set (design philosophy)
+      };
+      targetId = entry.id;
+      return [...prev, entry];
+    });
+    if (targetId) setExpandedId(targetId);
   }, []);
+
+  // Create a brand-new library exercise, then add it to today. Case-insensitive
+  // dedupe against the existing library (reuses the match instead of duplicating).
+  // Returns the library row used. Online-only (needs the DB to mint the id).
+  const createExercise = useCallback(
+    async ({ name, muscleGroup }) => {
+      const trimmed = name.trim();
+      if (!trimmed) throw new Error('Name required');
+      const existing = library.find((e) => e.name.toLowerCase() === trimmed.toLowerCase());
+      const row = existing ?? (await insertExercise({ name: trimmed, muscleGroup }));
+      setLibrary((prev) =>
+        prev.some((e) => e.id === row.id)
+          ? prev
+          : [...prev, row].sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      saveLibraryCache(userId, [...library.filter((e) => e.id !== row.id), row]);
+      addExercise(row);
+      return row;
+    },
+    [library, userId, addExercise],
+  );
 
   const updateExercise = useCallback((id, next) => {
     setExercises((prev) => prev.map((e) => (e.id === id ? next : e)));
@@ -276,6 +310,7 @@ export function useWorkout() {
     finished,
     setFinished,
     addExercise,
+    createExercise,
     updateExercise,
     removeExercise,
     toggle,

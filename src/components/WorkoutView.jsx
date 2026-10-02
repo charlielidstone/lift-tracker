@@ -1,13 +1,13 @@
-// WorkoutView — the top of the logging UI: today's workout as a list of exercises.
-// State + persistence live in useWorkout (loads today's workout from Supabase and
-// auto-saves changes). This component is presentational: render cards + add control.
-//
-// A finished workout renders read-only (locked) so sets can't be edited by accident;
-// an "Edit workout" button unlocks it.
+// WorkoutView — today's workout: type picker, recommended one-tap chips, the
+// exercise cards, and a searchable picker as the full-list backup.
+// State + persistence come from the shared WorkoutProvider (so the Library screen
+// adds to the same workout). A finished workout renders read-only (locked).
 
 import { ExerciseCard } from '@/components/ExerciseCard';
+import { ExercisePicker } from '@/components/ExercisePicker';
+import { RecommendedExercises } from '@/components/RecommendedExercises';
 import { Button } from '@/components/ui/button';
-import { useWorkout } from '@/hooks/useWorkout';
+import { useWorkoutContext } from '@/hooks/WorkoutProvider';
 import { WORKOUT_TYPES } from '@/lib/defaults';
 
 export function WorkoutView() {
@@ -27,13 +27,14 @@ export function WorkoutView() {
     updateExercise,
     removeExercise,
     toggle,
-  } = useWorkout();
+  } = useWorkoutContext();
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading today's workout…</p>;
   }
 
   const hasExercises = exercises.length > 0;
+  const inWorkoutIds = exercises.map((e) => e.exerciseId);
 
   return (
     <div className="flex flex-col gap-3">
@@ -49,16 +50,12 @@ export function WorkoutView() {
           Offline — changes are saved on this device and will sync when you're back online.
         </p>
       )}
-      {online && pendingSync && (
-        <p className="text-xs text-muted-foreground">Syncing…</p>
-      )}
+      {online && pendingSync && <p className="text-xs text-muted-foreground">Syncing…</p>}
 
       {/* Locked banner + unlock. */}
       {finished && (
         <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2">
-          <span className="text-sm font-medium text-foreground">
-            Workout finished — locked
-          </span>
+          <span className="text-sm font-medium text-foreground">Workout finished — locked</span>
           <Button type="button" variant="outline" size="sm" onClick={() => setFinished(false)}>
             Edit workout
           </Button>
@@ -89,10 +86,6 @@ export function WorkoutView() {
         })}
       </div>
 
-      {!hasExercises && (
-        <p className="text-sm text-muted-foreground">No exercises yet — add one to start.</p>
-      )}
-
       {exercises.map((exercise) => (
         <ExerciseCard
           key={exercise.id}
@@ -105,28 +98,16 @@ export function WorkoutView() {
         />
       ))}
 
-      {/* Add-exercise control — hidden when finished. */}
+      {/* Add exercises — recommended chips + searchable picker. Hidden when locked. */}
       {!finished && (
-        <div className="flex items-center gap-2">
-          <select
-            aria-label="Add exercise"
-            className="rounded-md border border-border bg-background px-2 py-1 text-sm"
-            value=""
-            onChange={(e) => {
-              const picked = library.find((x) => x.id === e.target.value);
-              if (picked) addExercise(picked);
-              e.target.value = '';
-            }}
-          >
-            <option value="" disabled>
-              Add exercise…
-            </option>
-            {library.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col gap-3">
+          <RecommendedExercises type={type} inWorkoutIds={inWorkoutIds} onPick={addExercise} />
+          <ExercisePicker library={library} inWorkoutIds={inWorkoutIds} onPick={addExercise} />
+          {!hasExercises && (
+            <p className="text-sm text-muted-foreground">
+              No exercises yet — tap a suggestion or search to add one.
+            </p>
+          )}
         </div>
       )}
 

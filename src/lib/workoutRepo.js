@@ -22,6 +22,25 @@ export async function fetchExercises() {
   return data;
 }
 
+// Create a new library exercise owned by the current user. Returns the new row.
+// Caller should dedupe by name first (case-insensitive) — see useWorkout.createExercise.
+export async function insertExercise({ name, muscleGroup }) {
+  if (!isSupabaseConfigured) throw new Error('not configured');
+  const uid = await currentUserId();
+  const { data, error } = await supabase
+    .from('exercises')
+    .insert({
+      name: name.trim(),
+      muscle_group: muscleGroup?.trim() || null,
+      is_custom: true,
+      ...(uid ? { user_id: uid } : {}),
+    })
+    .select('id, name, muscle_group, is_custom')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 // ── Workouts ─────────────────────────────────────────────────
 
 // The current logged-in user's id, or null when not authenticated (single-user

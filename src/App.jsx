@@ -2,64 +2,88 @@ import { useState } from 'react';
 import './App.css';
 import { WorkoutView } from './components/WorkoutView';
 import { WorkoutHistory } from './components/WorkoutHistory';
+import { LibraryView } from './components/LibraryView';
+import { BottomNav } from './components/BottomNav';
 import { Login } from './components/Login';
 import { Button } from '@/components/ui/button';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { WorkoutProvider } from '@/hooks/WorkoutProvider';
 import { PWAUpdater } from '@/components/PWAUpdater';
-
-const TABS = [
-  { id: 'today', label: 'Today' },
-  { id: 'history', label: 'History' },
-];
 
 // Whether login is REQUIRED to use the app. Off by default so the app keeps working
 // while multi-user is being built; flip to 'true' in .env.local when ready to enforce.
 const REQUIRE_AUTH = import.meta.env.VITE_REQUIRE_AUTH === 'true';
 
-function MainApp() {
-  const [tab, setTab] = useState('today');
-  const { user, signOut } = useAuth();
+// ── Workout screen: Today + History sub-tabs ──
+const WORKOUT_SUBTABS = [
+  { id: 'today', label: 'Today' },
+  { id: 'history', label: 'History' },
+];
 
+function WorkoutScreen() {
+  const [sub, setSub] = useState('today');
   return (
-    <div className="max-w-md mx-auto p-4">
+    <>
       <div className="mb-4 flex items-center gap-2">
-        {TABS.map(({ id, label }) => (
+        {WORKOUT_SUBTABS.map(({ id, label }) => (
           <Button
             key={id}
             type="button"
-            variant={tab === id ? 'default' : 'outline'}
+            variant={sub === id ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setTab(id)}
-            aria-pressed={tab === id}
+            onClick={() => setSub(id)}
+            aria-pressed={sub === id}
           >
             {label}
           </Button>
         ))}
-        {user && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="ml-auto"
-            onClick={() => signOut()}
-          >
-            Sign out
-          </Button>
-        )}
       </div>
+      {sub === 'today' ? <WorkoutView /> : <WorkoutHistory />}
+    </>
+  );
+}
 
-      {tab === 'today' ? (
-        <>
-          <h1 className="text-xl font-semibold mb-4">Today's Workout</h1>
-          <WorkoutView />
-        </>
-      ) : (
-        <>
-          <h1 className="text-xl font-semibold mb-4">History</h1>
-          <WorkoutHistory />
-        </>
+// ── Settings screen (placeholder for now) ──
+function SettingsScreen() {
+  const { user, signOut } = useAuth();
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <h2 className="text-sm font-medium text-foreground">Account</h2>
+        <p className="text-sm text-muted-foreground">{user?.email ?? 'Not signed in'}</p>
+      </div>
+      {user && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={() => signOut()}
+        >
+          Sign out
+        </Button>
       )}
+      <p className="text-xs text-muted-foreground">More settings coming soon.</p>
     </div>
+  );
+}
+
+const TITLES = { library: 'Library', workout: 'Workout', settings: 'Settings' };
+
+function MainApp() {
+  const [screen, setScreen] = useState('workout');
+
+  return (
+    <WorkoutProvider>
+      {/* pb-24 leaves room for the fixed bottom nav */}
+      <div className="mx-auto max-w-md p-4 pb-24">
+        <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
+        {screen === 'workout' && <WorkoutScreen />}
+        {screen === 'library' && <LibraryView />}
+        {screen === 'settings' && <SettingsScreen />}
+      </div>
+      <BottomNav active={screen} onChange={setScreen} />
+    </WorkoutProvider>
   );
 }
 
