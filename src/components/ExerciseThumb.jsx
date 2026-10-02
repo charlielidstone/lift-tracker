@@ -12,7 +12,9 @@ export function ExerciseThumb({ name, size = 'md', className }) {
   const dim = size === 'sm' ? 'size-9' : size === 'lg' ? 'size-16' : 'size-12';
 
   const box = cn(
-    'flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted',
+    // Fixed dark tile so the white line-art illustrations always read, regardless
+    // of the app's (currently light) theme.
+    'flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-900',
     dim,
     className,
   );
@@ -20,7 +22,7 @@ export function ExerciseThumb({ name, size = 'md', className }) {
   if (!url || failed) {
     return (
       <span className={box} aria-hidden="true">
-        <Dumbbell className="size-1/2 text-muted-foreground" />
+        <Dumbbell className="size-1/2 text-zinc-500" />
       </span>
     );
   }
