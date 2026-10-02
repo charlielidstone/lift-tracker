@@ -4,7 +4,7 @@
 // Reads from the history cache (same source as the History tab + smart defaults),
 // so it works offline. Falls back to a fresh fetch when online.
 
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -12,9 +12,16 @@ import { useSettings } from '@/hooks/SettingsProvider';
 import { loadHistoryCache, saveHistoryCache } from '@/lib/localCache';
 import { fetchWorkoutHistory } from '@/lib/workoutRepo';
 import { exerciseProgress, metricTrend, trackedExercises, METRICS } from '@/lib/progress';
+import { overviewStats } from '@/lib/overview';
 import { toDisplayWeight, unitLabel } from '@/lib/units';
 import { Button } from '@/components/ui/button';
-import { LineChart } from '@/components/LineChart';
+import { OverviewStats } from '@/components/OverviewStats';
+
+// Recharts is heavy (~270KB gzip) — lazy-load it so it only downloads when the
+// Progress chart is actually shown, keeping the initial PWA bundle lean.
+const LineChart = lazy(() =>
+  import('@/components/LineChart').then((m) => ({ default: m.LineChart })),
+);
 
 // 'YYYY-MM-DD' → 'Sep 24' (local noon so the label doesn't drift across tz).
 function shortDate(iso) {
@@ -52,6 +59,7 @@ export function ProgressView() {
   }, [userId]);
 
   const exercises = useMemo(() => trackedExercises(history), [history]);
+  const overview = useMemo(() => overviewStats(history), [history]);
   const series = useMemo(
     () => (selected ? exerciseProgress(history, selected) : []),
     [history, selected],
@@ -79,7 +87,7 @@ export function ProgressView() {
     return <p className="text-sm text-muted-foreground">Sign in to see your progress.</p>;
   }
 
-  // ── Exercise list ──
+  // ── Exercise list (+ overview) ──
   if (!selected) {
     if (exercises.length === 0) {
       return (
@@ -89,21 +97,26 @@ export function ProgressView() {
       );
     }
     return (
-      <div className="flex flex-col gap-2">
-        <p className="text-xs text-muted-foreground">Pick an exercise to see it over time.</p>
-        {exercises.map((e) => (
-          <button
-            key={e.exerciseId}
-            type="button"
-            onClick={() => setSelected(e.exerciseId)}
-            className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-left hover:bg-muted"
-          >
-            <span className="text-sm text-foreground">{e.name}</span>
-            <span className="text-xs text-muted-foreground">
-              {e.sessions} session{e.sessions === 1 ? '' : 's'}
-            </span>
-          </button>
-        ))}
+      <div className="flex flex-col gap-4">
+        <OverviewStats stats={overview} unit={unit} />
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium text-muted-foreground">
+            By exercise — tap to see it over time.
+          </p>
+          {exercises.map((e) => (
+            <button
+              key={e.exerciseId}
+              type="button"
+              onClick={() => setSelected(e.exerciseId)}
+              className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-left hover:bg-muted"
+            >
+              <span className="text-sm text-foreground">{e.name}</span>
+              <span className="text-xs text-muted-foreground">
+                {e.sessions} session{e.sessions === 1 ? '' : 's'}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
     );
   }
@@ -156,7 +169,11 @@ export function ProgressView() {
               </span>
             </p>
           )}
-          <LineChart points={points} formatY={(v) => String(Math.round(v))} />
+          <Suspense
+            fallback={<p className="text-xs text-muted-foreground">Loading chart…</p>}
+          >
+            <LineChart points={points} formatY={(v) => String(Math.round(v))} />
+          </Suspense>
         </>
       )}
     </div>
