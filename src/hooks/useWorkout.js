@@ -252,9 +252,9 @@ export function useWorkout() {
     if (targetId) setExpandedId(targetId);
   }, []);
 
-  // Create a brand-new library exercise, then add it to today. Case-insensitive
-  // dedupe against the existing library (reuses the match instead of duplicating).
-  // Returns the library row used. Online-only (needs the DB to mint the id).
+  // Create a brand-new library exercise (library only — NOT added to today).
+  // Case-insensitive dedupe against the existing library (reuses the match
+  // instead of duplicating). Returns the library row used. Online-only (DB mints id).
   const createExercise = useCallback(
     async ({ name, muscleGroup }) => {
       const trimmed = name.trim();
@@ -267,10 +267,9 @@ export function useWorkout() {
           : [...prev, row].sort((a, b) => a.name.localeCompare(b.name)),
       );
       saveLibraryCache(userId, [...library.filter((e) => e.id !== row.id), row]);
-      addExercise(row);
       return row;
     },
-    [library, userId, addExercise],
+    [library, userId],
   );
 
   const updateExercise = useCallback((id, next) => {

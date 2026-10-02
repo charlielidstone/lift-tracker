@@ -1,26 +1,22 @@
-// LibraryView — the Library tab: browse all exercises, one-tap add to today's
-// workout, and create a new exercise (name + optional muscle group). Edit/delete
-// come later. Adds go to the SHARED workout via WorkoutProvider.
+// LibraryView — the Library tab: browse all exercises and create a new one
+// (name + optional muscle group). Browse/manage only — adding an exercise to a
+// workout happens on the Today screen (recommended chips / searchable picker).
 
 import { useMemo, useState } from 'react';
-import { Check, Plus, Search } from 'lucide-react';
-import { cn } from 'cn';
+import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
 
 export function LibraryView() {
-  const { library, exercises, addExercise, createExercise, loading } = useWorkoutContext();
+  const { library, createExercise, loading } = useWorkoutContext();
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newMuscle, setNewMuscle] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  const [justAdded, setJustAdded] = useState(null); // exerciseId → brief "added" flash
-
-  const inWorkout = useMemo(() => new Set(exercises.map((e) => e.exerciseId)), [exercises]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -28,19 +24,13 @@ export function LibraryView() {
     return [...list].sort((a, b) => a.name.localeCompare(b.name));
   }, [library, query]);
 
-  const flashAdded = (id) => {
-    setJustAdded(id);
-    setTimeout(() => setJustAdded((cur) => (cur === id ? null : cur)), 1200);
-  };
-
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
     setBusy(true);
     setErr(null);
     try {
-      const row = await createExercise({ name: newName, muscleGroup: newMuscle });
-      flashAdded(row.id);
+      await createExercise({ name: newName, muscleGroup: newMuscle });
       setNewName('');
       setNewMuscle('');
       setCreating(false);
@@ -91,7 +81,7 @@ export function LibraryView() {
           {err && <p className="text-xs text-destructive">{err}</p>}
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={busy || !newName.trim()}>
-              {busy ? 'Adding…' : 'Create & add to today'}
+              {busy ? 'Saving…' : 'Create'}
             </Button>
             <Button
               type="button"
@@ -117,50 +107,24 @@ export function LibraryView() {
         </Button>
       )}
 
-      {/* List */}
+      {/* List (browse only — add to a workout from the Today screen) */}
       <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
         {results.length === 0 && (
           <li className="px-3 py-3 text-sm text-muted-foreground">
             {query ? 'No matches.' : 'No exercises yet — create one above.'}
           </li>
         )}
-        {results.map((e) => {
-          const added = inWorkout.has(e.id) || justAdded === e.id;
-          return (
-            <li key={e.id} className="flex items-center justify-between gap-2 px-3 py-2.5">
-              <span className="flex min-w-0 items-center gap-3">
-                <ExerciseThumb name={e.name} size="sm" />
-                <span className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm text-foreground">{e.name}</span>
-                  {e.muscle_group && (
-                    <span className="text-xs text-muted-foreground">{e.muscle_group}</span>
-                  )}
-                </span>
-              </span>
-              <Button
-                type="button"
-                size="sm"
-                variant={added ? 'ghost' : 'outline'}
-                disabled={added}
-                onClick={() => {
-                  addExercise(e);
-                  flashAdded(e.id);
-                }}
-                className={cn('shrink-0', added && 'text-muted-foreground')}
-              >
-                {added ? (
-                  <>
-                    <Check className="size-4" /> Added
-                  </>
-                ) : (
-                  <>
-                    <Plus className="size-4" /> Add
-                  </>
-                )}
-              </Button>
-            </li>
-          );
-        })}
+        {results.map((e) => (
+          <li key={e.id} className="flex items-center gap-3 px-3 py-2.5">
+            <ExerciseThumb name={e.name} size="sm" />
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-sm text-foreground">{e.name}</span>
+              {e.muscle_group && (
+                <span className="text-xs text-muted-foreground">{e.muscle_group}</span>
+              )}
+            </span>
+          </li>
+        ))}
       </ul>
     </div>
   );
