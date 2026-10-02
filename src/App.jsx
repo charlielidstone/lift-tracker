@@ -3,6 +3,7 @@ import './App.css';
 import { WorkoutView } from './components/WorkoutView';
 import { WorkoutHistory } from './components/WorkoutHistory';
 import { LibraryView } from './components/LibraryView';
+import { PlanView } from './components/PlanView';
 import { ProgressView } from './components/ProgressView';
 import { SettingsView } from './components/SettingsView';
 import { BottomNav } from './components/BottomNav';
@@ -11,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { WorkoutProvider } from '@/hooks/WorkoutProvider';
 import { SettingsProvider } from '@/hooks/SettingsProvider';
+import { SplitProvider } from '@/hooks/SplitProvider';
 import { PWAUpdater } from '@/components/PWAUpdater';
 
 // Whether login is REQUIRED to use the app. Off by default so the app keeps working
@@ -46,22 +48,31 @@ function WorkoutScreen() {
   );
 }
 
-const TITLES = { library: 'Library', workout: 'Workout', progress: 'Progress', settings: 'Settings' };
+const TITLES = {
+  library: 'Library',
+  workout: 'Workout',
+  plan: 'Plan',
+  progress: 'Progress',
+  settings: 'Settings',
+};
 
 function MainApp() {
   const [screen, setScreen] = useState('workout');
 
   return (
     <WorkoutProvider>
-      {/* pb-24 leaves room for the fixed bottom nav */}
-      <div className="mx-auto max-w-md p-4 pb-24">
-        <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
-        {screen === 'workout' && <WorkoutScreen />}
-        {screen === 'library' && <LibraryView />}
-        {screen === 'progress' && <ProgressView />}
-        {screen === 'settings' && <SettingsView />}
-      </div>
-      <BottomNav active={screen} onChange={setScreen} />
+      <SplitProvider>
+        {/* pb-24 leaves room for the fixed bottom nav */}
+        <div className="mx-auto max-w-md p-4 pb-24">
+          <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
+          {screen === 'workout' && <WorkoutScreen />}
+          {screen === 'library' && <LibraryView />}
+          {screen === 'plan' && <PlanView />}
+          {screen === 'progress' && <ProgressView />}
+          {screen === 'settings' && <SettingsView />}
+        </div>
+        <BottomNav active={screen} onChange={setScreen} />
+      </SplitProvider>
     </WorkoutProvider>
   );
 }

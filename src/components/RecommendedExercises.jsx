@@ -2,17 +2,22 @@
 // history by the selected workout type (falls back to overall). Tapping a chip
 // adds it to today. Hidden when there's nothing to recommend.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { loadHistoryCache, saveHistoryCache } from '@/lib/localCache';
 import { fetchWorkoutHistory } from '@/lib/workoutRepo';
 import { recommendExercises } from '@/lib/recommend';
+import { groupsForType } from '@/lib/split';
+import { useSplit } from '@/hooks/SplitProvider';
+import { useWorkoutContext } from '@/hooks/WorkoutProvider';
 
 export function RecommendedExercises({ type, inWorkoutIds, onPick }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
+  const { split } = useSplit();
+  const { library } = useWorkoutContext();
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
@@ -37,7 +42,21 @@ export function RecommendedExercises({ type, inWorkoutIds, onPick }) {
     };
   }, [userId]);
 
-  const recs = recommendExercises(history, { type, excludeIds: inWorkoutIds, limit: 6 });
+  // Map exerciseId → muscle_group so the split day's groups can boost chips.
+  const muscleById = useMemo(() => {
+    const m = {};
+    for (const e of library ?? []) m[e.id] = e.muscle_group ?? null;
+    return m;
+  }, [library]);
+  const boostGroups = useMemo(() => groupsForType(split, type), [split, type]);
+
+  const recs = recommendExercises(history, {
+    type,
+    excludeIds: inWorkoutIds,
+    limit: 6,
+    boostGroups,
+    muscleById,
+  });
   if (recs.length === 0) return null;
 
   return (
