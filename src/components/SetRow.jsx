@@ -21,9 +21,20 @@ import { useEffect, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { EditableStat } from '@/components/EditableStat';
 import { Button } from '@/components/ui/button';
-import { STEP, BOUNDS } from '@/lib/defaults';
+import { BOUNDS } from '@/lib/defaults';
+import { useSettings } from '@/hooks/SettingsProvider';
+import {
+  fromDisplayWeight,
+  toDisplayWeight,
+  unitLabel,
+  weightBounds,
+  weightStep,
+} from '@/lib/units';
 
 export function SetRow({ set, onChange, onDelete, index, readOnly }) {
+  const { unit } = useSettings();
+  // Weight is stored in lb; show + step it in the chosen unit, convert back on edit.
+  const wBounds = weightBounds(BOUNDS.weight, unit);
   // Which stat is expanded into a Stepper (only one at a time). null = all collapsed.
   const [activeField, setActiveField] = useState(null);
   const rowRef = useRef(null);
@@ -45,14 +56,14 @@ export function SetRow({ set, onChange, onDelete, index, readOnly }) {
     <div ref={rowRef} className="flex justify-start items-center gap-2 m-1">
       <span className="w-5 shrink-0">{index}.</span>
       <EditableStat
-        label="lb"
-        value={set.weight}
-        step={STEP.weight}
-        min={BOUNDS.weight.min}
-        max={BOUNDS.weight.max}
+        label={unitLabel(unit)}
+        value={toDisplayWeight(set.weight, unit)}
+        step={weightStep(unit)}
+        min={wBounds.min}
+        max={wBounds.max}
         active={activeField === 'weight'}
         onActivate={() => toggleField('weight')}
-        onChange={(v) => onChange({ weight: v })}
+        onChange={(v) => onChange({ weight: fromDisplayWeight(v, unit) })}
         readOnly={readOnly}
       />
       <EditableStat

@@ -3,11 +3,13 @@ import './App.css';
 import { WorkoutView } from './components/WorkoutView';
 import { WorkoutHistory } from './components/WorkoutHistory';
 import { LibraryView } from './components/LibraryView';
+import { SettingsView } from './components/SettingsView';
 import { BottomNav } from './components/BottomNav';
 import { Login } from './components/Login';
 import { Button } from '@/components/ui/button';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { WorkoutProvider } from '@/hooks/WorkoutProvider';
+import { SettingsProvider } from '@/hooks/SettingsProvider';
 import { PWAUpdater } from '@/components/PWAUpdater';
 
 // Whether login is REQUIRED to use the app. Off by default so the app keeps working
@@ -43,46 +45,6 @@ function WorkoutScreen() {
   );
 }
 
-// ── Settings screen (placeholder for now) ──
-function SettingsScreen() {
-  const { user, signOut } = useAuth();
-  return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-sm font-medium text-foreground">Account</h2>
-        <p className="text-sm text-muted-foreground">{user?.email ?? 'Not signed in'}</p>
-      </div>
-      {user && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="self-start"
-          onClick={() => signOut()}
-        >
-          Sign out
-        </Button>
-      )}
-      <div className="border-t border-border pt-4">
-        <h2 className="text-sm font-medium text-foreground">About</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Exercise illustrations by Bryl Lim, adapted from Everkinetic, licensed under{' '}
-          <a
-            href="https://creativecommons.org/licenses/by-sa/4.0/"
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
-          >
-            CC BY-SA 4.0
-          </a>
-          .
-        </p>
-      </div>
-      <p className="text-xs text-muted-foreground">More settings coming soon.</p>
-    </div>
-  );
-}
-
 const TITLES = { library: 'Library', workout: 'Workout', settings: 'Settings' };
 
 function MainApp() {
@@ -95,7 +57,7 @@ function MainApp() {
         <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
         {screen === 'workout' && <WorkoutScreen />}
         {screen === 'library' && <LibraryView />}
-        {screen === 'settings' && <SettingsScreen />}
+        {screen === 'settings' && <SettingsView />}
       </div>
       <BottomNav active={screen} onChange={setScreen} />
     </WorkoutProvider>
@@ -120,8 +82,10 @@ function Gate() {
 function App() {
   return (
     <AuthProvider>
-      <Gate />
-      <PWAUpdater />
+      <SettingsProvider>
+        <Gate />
+        <PWAUpdater />
+      </SettingsProvider>
     </AuthProvider>
   );
 }
