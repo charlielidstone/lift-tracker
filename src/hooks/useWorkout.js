@@ -11,9 +11,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_SET, localToday } from '@/lib/defaults';
+import { defaultWeightFor } from '@/lib/lastWeight';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import {
+  loadHistoryCache,
   loadLibraryCache,
   loadSyncedSnapshot,
   loadWorkoutCache,
@@ -59,6 +61,7 @@ export function useWorkout() {
   const timerRef = useRef(null);
   const hydratedRef = useRef(false); // cache hydration done → cache writes allowed
   const exercisesRef = useRef(exercises); // latest exercises for reconnect flush
+  const historyRef = useRef(null); // cached workout history → smart default weights
   useEffect(() => {
     exercisesRef.current = exercises;
   }, [exercises]);
@@ -85,6 +88,7 @@ export function useWorkout() {
     const cachedLib = loadLibraryCache(userId);
     const cachedWorkout = loadWorkoutCache(userId, today);
     const cachedSynced = loadSyncedSnapshot(userId, today);
+    historyRef.current = loadHistoryCache(userId); // for smart default weights
     if (cachedLib) setLibrary(cachedLib);
     if (cachedWorkout) {
       workoutIdRef.current = cachedWorkout.workoutId ?? null;
@@ -233,11 +237,14 @@ export function useWorkout() {
         targetId = existing.id;
         return prev; // no dupe
       }
+      // Smart default: open with the weight from the most recent session that
+      // included this exercise; fall back to DEFAULT_SET.weight if never logged.
+      const weight = defaultWeightFor(historyRef.current, exId, DEFAULT_SET.weight);
       const entry = {
         id: crypto.randomUUID(),
         exerciseId: exId,
         name: libraryExercise.name,
-        sets: [newSet()], // zero-tap logged set (design philosophy)
+        sets: [{ ...newSet(), weight }], // zero-tap logged set (design philosophy)
       };
       targetId = entry.id;
       return [...prev, entry];
