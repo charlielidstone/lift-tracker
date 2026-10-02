@@ -110,14 +110,17 @@ export function useWorkout() {
         workoutIdRef.current = workout.id;
         setWorkoutTypeState(workout.type ?? null);
         setFinishedState(Boolean(workout.finished_at));
-        // If there are pending offline edits, DON'T clobber them with the server
-        // copy — keep local desired state and let flush() push the diff up. Only
-        // adopt the server's exercises when nothing is pending.
+        // Adopt the server copy UNLESS there are genuine un-synced LOCAL edits.
+        // "Local edits" = cached desired state differs from the last-synced
+        // baseline (savedRef) — NOT from the server. Comparing against the server
+        // would wrongly treat an out-of-band server change (e.g. a CLI/admin edit)
+        // as a local edit and freeze the stale cache. When there are no pending
+        // local edits, the server always wins.
         const serverSnap = snapshotSets(workout.exercises);
-        const pending = cachedWorkout && hasPendingOps(savedRef.current, serverSnap)
-          ? hasPendingOps(snapshotSets(cachedWorkout.exercises ?? []), serverSnap)
+        const localEdits = cachedWorkout
+          ? hasPendingOps(snapshotSets(cachedWorkout.exercises ?? []), savedRef.current)
           : false;
-        if (!pending) {
+        if (!localEdits) {
           setExercises(workout.exercises);
         }
         commitSynced(serverSnap);

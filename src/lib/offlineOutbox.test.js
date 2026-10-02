@@ -65,6 +65,34 @@ describe('offline outbox survives a reload', () => {
     expect(hasPendingOps(desired, baseline)).toBe(false);
   });
 
+  it('out-of-band server change is adopted when there are NO local edits', () => {
+    // Reproduces the "CLI changed exercise, app showed stale name" bug.
+    // cached desired == synced baseline (no local edits) → server copy should win.
+    const baselineRows = [
+      { id: 's1', exerciseId: 'benchId', weight: 25, reps: 12, rpe: 5, setOrder: 0 },
+    ];
+    const cachedDesired = new Map(baselineRows.map((r) => [r.id, r]));
+    const syncedBaseline = new Map(baselineRows.map((r) => [r.id, { ...r }]));
+    // Server now points the same set at a different exercise (preacherId).
+    const serverSnap = new Map([
+      ['s1', { id: 's1', exerciseId: 'preacherId', weight: 25, reps: 12, rpe: 5, setOrder: 0 }],
+    ]);
+    // The reconcile decision compares cached desired vs the SYNCED baseline.
+    expect(hasPendingOps(cachedDesired, syncedBaseline)).toBe(false); // no local edits → adopt server
+    // Comparing against the server (the OLD buggy test) would look like a change:
+    expect(hasPendingOps(cachedDesired, serverSnap)).toBe(true);
+  });
+
+  it('genuine local edit is preserved against the synced baseline', () => {
+    const syncedBaseline = new Map([
+      ['s1', { id: 's1', exerciseId: 'a', weight: 100, reps: 10, rpe: 8, setOrder: 0 }],
+    ]);
+    const cachedDesired = new Map([
+      ['s1', { id: 's1', exerciseId: 'a', weight: 145, reps: 10, rpe: 8, setOrder: 0 }],
+    ]);
+    expect(hasPendingOps(cachedDesired, syncedBaseline)).toBe(true); // keep local
+  });
+
   it('advancing the synced snapshot (after a successful flush) clears pending', () => {
     const s = fakeStorage();
     const uid = 'u1';
