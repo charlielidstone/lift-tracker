@@ -21,7 +21,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { EditableStat } from '@/components/EditableStat';
 import { Button } from '@/components/ui/button';
-import { BOUNDS } from '@/lib/defaults';
+import { STEP, BOUNDS } from '@/lib/defaults';
 import { useSettings } from '@/hooks/SettingsProvider';
 import {
   fromDisplayWeight,
