@@ -128,3 +128,14 @@
     @apply font-sans;
   }
 }
+
+/* iOS Safari auto-zooms when focusing an input whose font is under 16px.
+   The viewport meta (user-scalable=no) handles it on modern iOS, but force
+   16px on touch inputs as a belt-and-suspenders so focus never triggers zoom. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
