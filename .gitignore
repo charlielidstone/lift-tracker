@@ -30,3 +30,6 @@ dist-ssr
 
 # vite-plugin-pwa dev output
 dev-dist
+
+# Personal workout backups (plain-text + json) — NOT for the public repo
+backups/

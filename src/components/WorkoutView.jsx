@@ -3,6 +3,7 @@
 // State + persistence come from the shared WorkoutProvider (so the Library screen
 // adds to the same workout). A finished workout renders read-only (locked).
 
+import { useState } from 'react';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExercisePicker } from '@/components/ExercisePicker';
 import { RecommendedExercises } from '@/components/RecommendedExercises';
@@ -28,10 +29,23 @@ export function WorkoutView() {
     removeExercise,
     toggle,
   } = useWorkoutContext();
+  const [finishing, setFinishing] = useState(false);
+  const [finishWarning, setFinishWarning] = useState(false);
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading today's workout…</p>;
   }
+
+  const handleFinish = async () => {
+    setFinishWarning(false);
+    setFinishing(true);
+    try {
+      const result = await setFinished(true);
+      if (!result?.ok) setFinishWarning(true); // sets not synced — stayed unlocked
+    } finally {
+      setFinishing(false);
+    }
+  };
 
   const hasExercises = exercises.length > 0;
   const inWorkoutIds = exercises.map((e) => e.exerciseId);
@@ -44,13 +58,19 @@ export function WorkoutView() {
         </p>
       )}
 
-      {/* Sync status — offline edits are cached and pushed on reconnect. */}
+      {/* Sync status — offline edits are cached and pushed on reconnect.
+          Loud warning while anything is unsynced: do NOT clear app data now. */}
       {!online && (
-        <p className="rounded-md bg-muted px-3 py-1.5 text-xs text-muted-foreground">
-          Offline — changes are saved on this device and will sync when you're back online.
+        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
+          📴 Offline — changes are saved on this device only and will sync when you're back
+          online. Don't clear app data or reinstall until this clears.
         </p>
       )}
-      <p className="text-xs text-muted-foreground">{online && pendingSync && "Syncing…"}</p>
+      {online && pendingSync && (
+        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700">
+          Syncing unsaved changes… don't clear app data until this finishes.
+        </p>
+      )}
 
       {/* Locked banner + unlock. */}
       {finished && (
@@ -111,11 +131,21 @@ export function WorkoutView() {
         </div>
       )}
 
-      {/* Finish button — only when there's something to lock and not already finished. */}
+      {/* Finish button — only when there's something to lock and not already finished.
+          Finishing flushes sets to the server first and refuses to lock if the sync
+          fails, so you never get a locked-but-empty workout. */}
       {!finished && hasExercises && (
-        <Button type="button" className="mt-2" onClick={() => setFinished(true)}>
-          Finish workout
-        </Button>
+        <div className="mt-2 flex flex-col gap-1.5">
+          {finishWarning && (
+            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              Couldn't finish — your sets aren't synced yet (you may be offline). They're still
+              saved on this device. Reconnect and try again; don't clear app data meanwhile.
+            </p>
+          )}
+          <Button type="button" onClick={handleFinish} disabled={finishing}>
+            {finishing ? 'Saving…' : 'Finish workout'}
+          </Button>
+        </div>
       )}
     </div>
   );

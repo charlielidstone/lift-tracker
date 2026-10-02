@@ -166,18 +166,20 @@ export function useWorkout() {
 
     if (ops.length === 0) {
       setPendingSync(false);
-      return;
+      return { ok: true, pending: false };
     }
     try {
       await Promise.all(ops);
       commitSynced(desired); // baseline advances only after writes succeed
       setPendingSync(false);
       setError(null);
+      return { ok: true, pending: false };
     } catch (e) {
       // Offline / server error: keep the pending flag so the reconnect listener
       // (and next edit) retries. Edits are safe in the write-through cache.
       setPendingSync(true);
       console.error('[useWorkout] save failed (will retry)', e);
+      return { ok: false, pending: true };
     }
   }, [commitSynced]);
 
@@ -286,16 +288,45 @@ export function useWorkout() {
     }
   }, []);
 
-  // Finish (lock) or unlock the workout. Optimistic + persisted immediately.
-  const setFinished = useCallback((next) => {
-    setFinishedState(next);
-    if (workoutIdRef.current) {
-      persistWorkoutFinished(workoutIdRef.current, next).catch((e) => {
-        setError(e);
-        console.error('[useWorkout] setFinished failed', e);
-      });
-    }
-  }, []);
+  // Finish (lock) or unlock the workout.
+  // Unlock is immediate. FINISH first flushes pending sets to the server and only
+  // locks if that succeeds — otherwise you can end up with a finished-but-empty
+  // workout server-side while the real sets sit unsynced in the outbox (and get
+  // lost if the cache is cleared). Returns { ok, reason } so the UI can warn.
+  const setFinished = useCallback(
+    async (next) => {
+      if (!next) {
+        // Unlocking — always safe.
+        setFinishedState(false);
+        if (workoutIdRef.current) {
+          persistWorkoutFinished(workoutIdRef.current, false).catch((e) => {
+            setError(e);
+            console.error('[useWorkout] unlock failed', e);
+          });
+        }
+        return { ok: true };
+      }
+
+      // Finishing: make sure every set is actually on the server first.
+      if (isSupabaseConfigured) {
+        const result = await flush();
+        if (!result.ok) {
+          // Still pending (offline / server error) — do NOT lock. Sets would be
+          // stranded in the outbox behind a locked, read-only workout.
+          return { ok: false, reason: 'pending' };
+        }
+      }
+      setFinishedState(true);
+      if (workoutIdRef.current) {
+        persistWorkoutFinished(workoutIdRef.current, true).catch((e) => {
+          setError(e);
+          console.error('[useWorkout] setFinished failed', e);
+        });
+      }
+      return { ok: true };
+    },
+    [flush],
+  );
 
   return {
     exercises,

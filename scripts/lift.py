@@ -255,6 +255,67 @@ def cmd_workout(args):
         print(f"deleted workout(s) for {date}")
 
 
+def cmd_export(args):
+    """Dump ALL workouts to a human-readable .txt (and a .json sidecar for exact
+    restore). This is the plain-text backup — run it on a schedule so a lost
+    offline session or a cleared cache can always be reconstructed."""
+    import os
+    workouts = rest("GET", "workouts", params={"select": "*", "order": "date.asc"})
+    full = []
+    total_sets = 0
+    for w in workouts:
+        sets = rest("GET", "set_entries", params={
+            "workout_id": f"eq.{w['id']}",
+            "select": "id,weight,reps,rpe,set_order,created_at,exercises(name)",
+            "order": "set_order",
+        })
+        total_sets += len(sets)
+        full.append({"workout": w, "sets": sets})
+
+    # Human-readable text
+    lines = []
+    lines.append("LIFT TRACKER — WORKOUT BACKUP")
+    lines.append(f"generated: {datetime.now().astimezone().isoformat(timespec='seconds')}")
+    lines.append(f"workouts: {len(workouts)}   sets: {total_sets}")
+    lines.append("=" * 48)
+    for entry in full:
+        w = entry["workout"]; sets = entry["sets"]
+        wtype = w.get("type") or "—"
+        locked = " [finished]" if w.get("finished_at") else ""
+        lines.append("")
+        lines.append(f"{w['date']}  ({wtype}){locked}")
+        if not sets:
+            lines.append("  (no sets)")
+        # group by exercise, preserving order
+        by_ex = []
+        seen = {}
+        for s in sets:
+            name = (s.get("exercises") or {}).get("name") or "?"
+            if name not in seen:
+                seen[name] = []; by_ex.append(name)
+            seen[name].append(s)
+        for name in by_ex:
+            lines.append(f"  {name}")
+            for s in seen[name]:
+                rpe = f" @ RPE {s['rpe']}" if s.get("rpe") is not None else ""
+                lines.append(f"    - {s['weight']} lb × {s['reps']}{rpe}")
+    text = "\n".join(lines) + "\n"
+
+    out_dir = args.dir or os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "backups")
+    os.makedirs(out_dir, exist_ok=True)
+    stamp = datetime.now().astimezone().strftime("%Y-%m-%d")
+    txt_path = os.path.join(out_dir, f"workouts-{stamp}.txt")
+    json_path = os.path.join(out_dir, f"workouts-{stamp}.json")
+    latest_txt = os.path.join(out_dir, "workouts-latest.txt")
+    with open(txt_path, "w") as f: f.write(text)
+    with open(latest_txt, "w") as f: f.write(text)
+    with open(json_path, "w") as f: json.dump(full, f, indent=2)
+    print(f"backed up {len(workouts)} workouts / {total_sets} sets")
+    print(f"  text: {txt_path}")
+    print(f"  text: {latest_txt}")
+    print(f"  json: {json_path}")
+
+
 # ── Arg parsing ──────────────────────────────────────────────
 def build_parser():
     p = argparse.ArgumentParser(prog="lift", description="Lift Tracker CLI")
@@ -301,6 +362,11 @@ def build_parser():
     wsub = w.add_subparsers(dest="action", required=True)
     wr = wsub.add_parser("rm", help="delete a workout"); wr.add_argument("--date", default=None)
     w.set_defaults(func=cmd_workout)
+
+    # export (plain-text + json backup of ALL workouts)
+    ex2 = sub.add_parser("export", help="back up all workouts to plain text + json")
+    ex2.add_argument("--dir", default=None, help="output dir (default: <repo>/backups)")
+    ex2.set_defaults(func=cmd_export)
 
     return p
 
