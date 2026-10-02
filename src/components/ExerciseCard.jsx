@@ -25,6 +25,7 @@
 
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 import { SetRow } from '@/components/SetRow';
+import { ExerciseThumb } from '@/components/ExerciseThumb';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,6 +83,7 @@ export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove,
         ) : (
           <ChevronRight className="size-4 shrink-0" />
         )}
+        <ExerciseThumb name={name} size="sm" />
         <CardTitle className="min-w-0 flex-1">{name}</CardTitle>
         <span className="shrink-0 whitespace-nowrap text-sm text-muted-foreground">
           {sets.length} {sets.length === 1 ? 'set' : 'sets'}

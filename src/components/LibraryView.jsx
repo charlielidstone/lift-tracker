@@ -7,6 +7,7 @@ import { Check, Plus, Search } from 'lucide-react';
 import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
 
 export function LibraryView() {
@@ -127,11 +128,14 @@ export function LibraryView() {
           const added = inWorkout.has(e.id) || justAdded === e.id;
           return (
             <li key={e.id} className="flex items-center justify-between gap-2 px-3 py-2.5">
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate text-sm text-foreground">{e.name}</span>
-                {e.muscle_group && (
-                  <span className="text-xs text-muted-foreground">{e.muscle_group}</span>
-                )}
+              <span className="flex min-w-0 items-center gap-3">
+                <ExerciseThumb name={e.name} size="sm" />
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-sm text-foreground">{e.name}</span>
+                  {e.muscle_group && (
+                    <span className="text-xs text-muted-foreground">{e.muscle_group}</span>
+                  )}
+                </span>
               </span>
               <Button
                 type="button"

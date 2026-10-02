@@ -63,6 +63,21 @@ function SettingsScreen() {
           Sign out
         </Button>
       )}
+      <div className="border-t border-border pt-4">
+        <h2 className="text-sm font-medium text-foreground">About</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Exercise illustrations by Bryl Lim, adapted from Everkinetic, licensed under{' '}
+          <a
+            href="https://creativecommons.org/licenses/by-sa/4.0/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            CC BY-SA 4.0
+          </a>
+          .
+        </p>
+      </div>
       <p className="text-xs text-muted-foreground">More settings coming soon.</p>
     </div>
   );
