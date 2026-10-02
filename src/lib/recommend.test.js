@@ -58,4 +58,25 @@ describe('recommendExercises', () => {
     expect(recommendExercises([], { type: 'Push' })).toEqual([]);
     expect(recommendExercises(null, { type: null })).toEqual([]);
   });
+
+  it('boosts split-day muscle groups to the top (over pure frequency)', () => {
+    // Overhead tricep is 'arms' (in boost) but less frequent than Bench/Pec (chest).
+    // Boosting arms should pull it ahead of the chest lifts.
+    const muscleById = {
+      'bench press': 'chest',
+      'pec deck': 'chest',
+      'overhead tricep': 'arms',
+    };
+    const rec = recommendExercises(history, {
+      type: 'Push',
+      boostGroups: ['arms'],
+      muscleById,
+    });
+    expect(rec[0].name).toBe('Overhead tricep'); // arms boosted to front
+  });
+
+  it('is unchanged when no boostGroups are given', () => {
+    const rec = recommendExercises(history, { type: 'Push' });
+    expect(rec.map((r) => r.name)).toEqual(['Bench Press', 'Pec deck', 'Overhead tricep']);
+  });
 });
