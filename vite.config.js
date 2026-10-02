@@ -36,6 +36,13 @@ export default defineConfig({
       workbox: {
         // Precache the app shell (JS/CSS/HTML/icons) so a cold start works offline.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // A new SW takes over IMMEDIATELY instead of waiting for every tab to close
+        // (an installed PWA is never fully closed, so without these the old cached
+        // bundle keeps serving and deploys appear not to land).
+        skipWaiting: true,
+        clientsClaim: true,
+        // Drop stale precaches from previous deploys so we don't accumulate old assets.
+        cleanupOutdatedCaches: true,
         // SPA fallback so any route serves index.html from cache when offline.
         navigateFallback: '/index.html',
         // NEVER cache Supabase API/auth calls — the app's own outbox handles
