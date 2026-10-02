@@ -50,7 +50,7 @@ export function WorkoutView() {
           Offline — changes are saved on this device and will sync when you're back online.
         </p>
       )}
-      {online && pendingSync && <p className="text-xs text-muted-foreground">Syncing…</p>}
+      <p className="text-xs text-muted-foreground">{online && pendingSync && "Syncing…"}</p>
 
       {/* Locked banner + unlock. */}
       {finished && (
