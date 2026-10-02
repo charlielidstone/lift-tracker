@@ -3,6 +3,7 @@ import './App.css';
 import { WorkoutView } from './components/WorkoutView';
 import { WorkoutHistory } from './components/WorkoutHistory';
 import { LibraryView } from './components/LibraryView';
+import { ProgressView } from './components/ProgressView';
 import { SettingsView } from './components/SettingsView';
 import { BottomNav } from './components/BottomNav';
 import { Login } from './components/Login';
@@ -45,7 +46,7 @@ function WorkoutScreen() {
   );
 }
 
-const TITLES = { library: 'Library', workout: 'Workout', settings: 'Settings' };
+const TITLES = { library: 'Library', workout: 'Workout', progress: 'Progress', settings: 'Settings' };
 
 function MainApp() {
   const [screen, setScreen] = useState('workout');
@@ -57,6 +58,7 @@ function MainApp() {
         <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
         {screen === 'workout' && <WorkoutScreen />}
         {screen === 'library' && <LibraryView />}
+        {screen === 'progress' && <ProgressView />}
         {screen === 'settings' && <SettingsView />}
       </div>
       <BottomNav active={screen} onChange={setScreen} />
