@@ -26,7 +26,7 @@ export function BottomNav({ active, onChange }) {
               onClick={() => onChange(id)}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'flex flex-1 flex-col items-center gap-0.5 py-2 text-xs',
+                'flex flex-1 flex-col items-center gap-0.5 py-2 pt-3 text-xs',
                 isActive ? 'text-accent-foreground' : 'text-muted-foreground',
               )}
             >
