@@ -14,7 +14,7 @@ export function ExerciseThumb({ name, size = 'md', className }) {
   const box = cn(
     // Fixed dark tile so the white line-art illustrations always read, regardless
     // of the app's (currently light) theme.
-    'flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-900',
+    'flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-zinc-000',
     dim,
     className,
   );
@@ -22,7 +22,7 @@ export function ExerciseThumb({ name, size = 'md', className }) {
   if (!url || failed) {
     return (
       <span className={box} aria-hidden="true">
-        <Dumbbell className="size-1/2 text-zinc-500" />
+        <Dumbbell className="size-1/2 text-zinc-700" />
       </span>
     );
   }
@@ -34,6 +34,7 @@ export function ExerciseThumb({ name, size = 'md', className }) {
         alt=""
         loading="lazy"
         className="size-full object-contain"
+        style={{ filter: 'invert(1)'}}
         onError={() => setFailed(true)}
       />
     </span>
