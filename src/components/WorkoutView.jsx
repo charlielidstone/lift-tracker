@@ -58,18 +58,22 @@ export function WorkoutView() {
         </p>
       )}
 
-      {/* Sync status — offline edits are cached and pushed on reconnect.
-          Loud warning while anything is unsynced: do NOT clear app data now. */}
-      {!online && (
-        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700">
-          📴 Offline — changes are saved on this device only and will sync when you're back
-          online. Don't clear app data or reinstall until this clears.
-        </p>
-      )}
-      {online && pendingSync && (
-        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700">
-          Syncing unsaved changes… don't clear app data until this finishes.
-        </p>
+      {/* Sync status — rendered as a FIXED overlay so appearing/disappearing never
+          shifts the page layout (the "Syncing…" one toggles on every edit).
+          Floats near the top, centered over the content column. */}
+      {((!online) || (online && pendingSync)) && (
+        <div className="pointer-events-none fixed inset-x-0 top-2 z-50 flex justify-center px-4">
+          {!online ? (
+            <p className="max-w-md rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 shadow-sm backdrop-blur">
+              📴 Offline — changes are saved on this device only and will sync when you're back
+              online. Don't clear app data or reinstall until this clears.
+            </p>
+          ) : (
+            <p className="max-w-md rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 shadow-sm backdrop-blur">
+              Syncing unsaved changes… don't clear app data until this finishes.
+            </p>
+          )}
+        </div>
       )}
 
       {/* Locked banner + unlock. */}
