@@ -6,8 +6,8 @@ import { cn } from 'cn';
 
 const ITEMS = [
   { id: 'library', label: 'Library', Icon: Library },
-  { id: 'workout', label: 'Workout', Icon: Dumbbell },
   { id: 'plan', label: 'Plan', Icon: CalendarDays },
+  { id: 'workout', label: 'Workout', Icon: Dumbbell },
   { id: 'progress', label: 'Progress', Icon: LineChart },
   { id: 'settings', label: 'Settings', Icon: Settings },
 ];
