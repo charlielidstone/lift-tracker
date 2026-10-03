@@ -1,166 +1,152 @@
-// PlanView — the Plan tab: define your gym split as named days, each mapped to
-// muscle groups (e.g. Push → chest, shoulders, arms). When today's workout TYPE
-// matches a day's name, the Today chips boost that day's muscle groups.
-// Planning only — no auto-loading of exercises (manual adding stays).
+// PlanView — the Plan tab: your weekly training schedule. Assign each weekday a
+// workout TYPE or Rest. When you start a workout, Today pre-sets the resolved
+// type (with catch-up for missed sessions — see schedule.js). Editing is instant
+// and persisted via ScheduleProvider.
 
-import { useMemo, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from 'cn';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useSplit } from '@/hooks/SplitProvider';
-import { useWorkoutContext } from '@/hooks/WorkoutProvider';
-import { MUSCLE_GROUPS, newDay, validateDay } from '@/lib/split';
+import { isSupabaseConfigured } from '@/lib/supabaseClient';
+import { useAuth } from '@/hooks/useAuth';
+import { loadHistoryCache } from '@/lib/localCache';
+import { fetchWorkoutHistory } from '@/lib/workoutRepo';
+import { WORKOUT_TYPES, localToday } from '@/lib/defaults';
+import { REST, WEEKDAY_LABELS, WEEKDAY_ORDER, resolveToday, scheduledType } from '@/lib/schedule';
+import { useSchedule } from '@/hooks/ScheduleProvider';
 
-function DayEditor({ initial, split, library, onSave, onCancel }) {
-  const [name, setName] = useState(initial.name);
-  const [groups, setGroups] = useState(initial.muscleGroups);
-  const [err, setErr] = useState(null);
+const OPTIONS = [...WORKOUT_TYPES, REST];
 
-  // Offer the standard groups unioned with any actually in the library.
-  const options = useMemo(() => {
-    const fromLib = (library ?? [])
-      .map((e) => (e.muscle_group ? String(e.muscle_group).toLowerCase() : null))
-      .filter(Boolean);
-    return [...new Set([...MUSCLE_GROUPS, ...fromLib])];
-  }, [library]);
-
-  const toggle = (g) =>
-    setGroups((cur) => (cur.includes(g) ? cur.filter((x) => x !== g) : [...cur, g]));
-
-  const save = () => {
-    const day = { ...initial, name: name.trim(), muscleGroups: groups };
-    const error = validateDay(split, day);
-    if (error) {
-      setErr(error);
-      return;
-    }
-    onSave(day);
-  };
-
-  return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-      <Input
-        autoFocus
-        placeholder="Day name (e.g. Push)"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <div className="flex flex-col gap-1.5">
-        <span className="text-xs text-muted-foreground">Muscle groups</span>
-        <div className="flex flex-wrap gap-1.5">
-          {options.map((g) => {
-            const on = groups.includes(g);
-            return (
-              <button
-                key={g}
-                type="button"
-                onClick={() => toggle(g)}
-                aria-pressed={on}
-                className={cn(
-                  'rounded-full border px-3 py-1.5 text-sm capitalize',
-                  on
-                    ? 'border-transparent bg-accent text-accent-foreground'
-                    : 'border-border text-muted-foreground hover:bg-muted',
-                )}
-              >
-                {g}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      {err && <p className="text-xs text-destructive">{err}</p>}
-      <div className="flex gap-2">
-        <Button type="button" size="sm" onClick={save} disabled={!name.trim()}>
-          Save day
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-    </div>
-  );
+// A date string in the CURRENT week for a given weekday index, so scheduledType
+// (which reads getDay()) resolves the right slot. Only the weekday matters.
+function dateForDow(dow) {
+  const now = new Date();
+  const d = new Date(now);
+  d.setDate(now.getDate() + (dow - now.getDay()));
+  return localToday(d);
 }
 
 export function PlanView() {
-  const { split, saveDay, deleteDay } = useSplit();
-  const { library } = useWorkoutContext();
-  const [editingId, setEditingId] = useState(null); // day id, 'new', or null
+  const { schedule, setDay } = useSchedule();
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const [history, setHistory] = useState([]);
+  const [openDay, setOpenDay] = useState(null); // weekday index being edited
 
-  const startNew = () => setEditingId('new');
-  const editing =
-    editingId === 'new'
-      ? newDay()
-      : split.find((d) => d.id === editingId) ?? null;
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let cancelled = false;
+    /* eslint-disable react/set-state-in-effect */
+    const cached = loadHistoryCache(userId);
+    if (cached) setHistory(cached);
+    /* eslint-enable react/set-state-in-effect */
+    (async () => {
+      try {
+        const data = await fetchWorkoutHistory();
+        if (!cancelled) setHistory(data);
+      } catch (e) {
+        console.error('[PlanView] history load failed', e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
-  const handleSave = (day) => {
-    saveDay(day);
-    setEditingId(null);
-  };
+  const today = localToday();
+  const todayDow = new Date().getDay();
+  const suggestion = useMemo(
+    () => resolveToday(schedule, history, today),
+    [schedule, history, today],
+  );
+  const showScheduled = suggestion.scheduled !== suggestion.type;
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Today's resolved suggestion (with catch-up) */}
+      <div className="rounded-lg border border-border bg-muted/40 p-3">
+        <p className="text-xs text-muted-foreground">Today</p>
+        <p className="text-lg font-semibold text-foreground">{suggestion.type}</p>
+        <p
+          className={cn(
+            'text-xs',
+            suggestion.due || suggestion.adjusted
+              ? 'text-amber-600 dark:text-amber-500'
+              : 'text-muted-foreground',
+          )}
+        >
+          {suggestion.reason}
+          {showScheduled ? ` · scheduled ${suggestion.scheduled}` : ''}
+        </p>
+      </div>
+
       <p className="text-xs text-muted-foreground">
-        Build your split as named days. When today's workout type matches a day, its muscle
-        groups drive the suggested exercises.
+        Set each weekday. Starting a workout pre-sets today&apos;s type; miss one and the week
+        shifts to catch you up without training the same type twice in a row.
       </p>
 
-      {editingId ? (
-        <DayEditor
-          initial={editing}
-          split={split}
-          library={library}
-          onSave={handleSave}
-          onCancel={() => setEditingId(null)}
-        />
-      ) : (
-        <Button type="button" variant="outline" className="justify-start" onClick={startNew}>
-          <Plus className="size-4" /> New day
-        </Button>
-      )}
-
-      {split.length === 0 && !editingId && (
-        <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
-          No days yet. Add one like “Push” → chest, shoulders, arms.
-        </p>
-      )}
-
       <ul className="flex flex-col gap-2">
-        {split.map((d) => (
-          <li
-            key={d.id}
-            className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2.5"
-          >
-            <div className="flex min-w-0 flex-col">
-              <span className="text-sm font-medium text-foreground">{d.name}</span>
-              <span className="truncate text-xs capitalize text-muted-foreground">
-                {d.muscleGroups.length ? d.muscleGroups.join(', ') : 'no muscle groups'}
-              </span>
-            </div>
-            <div className="flex shrink-0 gap-1">
-              <Button
+        {WEEKDAY_ORDER.map((dow) => {
+          const type = scheduledType(schedule, dateForDow(dow));
+          const isToday = dow === todayDow;
+          const editing = openDay === dow;
+          return (
+            <li
+              key={dow}
+              className={cn(
+                'rounded-lg border px-3 py-2.5',
+                isToday ? 'border-accent' : 'border-border',
+              )}
+            >
+              <button
                 type="button"
-                size="icon"
-                variant="ghost"
-                aria-label={`Edit ${d.name}`}
-                onClick={() => setEditingId(d.id)}
+                className="flex w-full items-center justify-between gap-2"
+                onClick={() => setOpenDay(editing ? null : dow)}
               >
-                <Pencil className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label={`Delete ${d.name}`}
-                onClick={() => deleteDay(d.id)}
-                className="text-destructive"
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
-          </li>
-        ))}
+                <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  {WEEKDAY_LABELS[dow]}
+                  {isToday && (
+                    <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase text-accent-foreground">
+                      Today
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    'text-sm',
+                    type === REST ? 'text-muted-foreground' : 'text-foreground',
+                  )}
+                >
+                  {type}
+                </span>
+              </button>
+
+              {editing && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {OPTIONS.map((opt) => {
+                    const on = opt === type;
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setDay(dow, opt);
+                          setOpenDay(null);
+                        }}
+                        className={cn(
+                          'rounded-full border px-3 py-1.5 text-sm',
+                          on
+                            ? 'border-transparent bg-accent text-accent-foreground'
+                            : 'border-border text-muted-foreground hover:bg-muted',
+                        )}
+                      >
+                        {opt}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

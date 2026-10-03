@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { WorkoutProvider } from '@/hooks/WorkoutProvider';
 import { SettingsProvider } from '@/hooks/SettingsProvider';
-import { SplitProvider } from '@/hooks/SplitProvider';
+import { ScheduleProvider } from '@/hooks/ScheduleProvider';
 import { PWAUpdater } from '@/components/PWAUpdater';
 
 // Whether login is REQUIRED to use the app. Off by default so the app keeps working
@@ -61,7 +61,7 @@ function MainApp() {
 
   return (
     <WorkoutProvider>
-      <SplitProvider>
+      <ScheduleProvider>
         {/* pb-24 leaves room for the fixed bottom nav */}
         <div className="mx-auto max-w-md p-4 pb-24">
           <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
@@ -72,7 +72,7 @@ function MainApp() {
           {screen === 'settings' && <SettingsView />}
         </div>
         <BottomNav active={screen} onChange={setScreen} />
-      </SplitProvider>
+      </ScheduleProvider>
     </WorkoutProvider>
   );
 }

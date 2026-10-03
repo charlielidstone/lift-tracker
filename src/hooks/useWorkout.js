@@ -12,11 +12,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_SET, localToday } from '@/lib/defaults';
 import { defaultWeightFor } from '@/lib/lastWeight';
+import { isRest, resolveToday } from '@/lib/schedule';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import {
   loadHistoryCache,
   loadLibraryCache,
+  loadScheduleCache,
   loadSyncedSnapshot,
   loadWorkoutCache,
   saveLibraryCache,
@@ -60,6 +62,7 @@ export function useWorkout() {
   const savedRef = useRef(new Map()); // setId → last-SERVER-CONFIRMED row
   const timerRef = useRef(null);
   const hydratedRef = useRef(false); // cache hydration done → cache writes allowed
+  const autoTypeRef = useRef(false); // schedule auto-set attempted once
   const exercisesRef = useRef(exercises); // latest exercises for reconnect flush
   const historyRef = useRef(null); // cached workout history → smart default weights
   useEffect(() => {
@@ -90,9 +93,29 @@ export function useWorkout() {
     const cachedSynced = loadSyncedSnapshot(userId, today);
     historyRef.current = loadHistoryCache(userId); // for smart default weights
     if (cachedLib) setLibrary(cachedLib);
+
+    // Is the cached (or absent) workout untouched? → eligible for schedule auto-set.
+    const cachedUntouched =
+      !cachedWorkout ||
+      (!cachedWorkout.type &&
+        (cachedWorkout.exercises?.length ?? 0) === 0 &&
+        !cachedWorkout.finished);
+    // Resolve the type to show: the cached type if present, else today's scheduled
+    // type (with catch-up). Computed unconditionally so every render pass applies
+    // the same value (no StrictMode double-invoke flicker back to null).
+    let hydrateType = cachedWorkout?.type ?? null;
+    if (cachedUntouched) {
+      const { type: suggested } = resolveToday(
+        loadScheduleCache(),
+        historyRef.current ?? [],
+        today,
+      );
+      if (!isRest(suggested)) hydrateType = suggested;
+    }
+
     if (cachedWorkout) {
       workoutIdRef.current = cachedWorkout.workoutId ?? null;
-      setWorkoutTypeState(cachedWorkout.type ?? null);
+      setWorkoutTypeState(hydrateType);
       setFinishedState(Boolean(cachedWorkout.finished));
       setExercises(cachedWorkout.exercises ?? []);
       // Baseline = last server-confirmed snapshot (NOT the desired state), so any
@@ -101,6 +124,9 @@ export function useWorkout() {
         ? rowsToMap(cachedSynced)
         : snapshotSets(cachedWorkout.exercises ?? []);
       setLoading(false); // we have something to show; server will reconcile
+    } else if (hydrateType) {
+      // No cached workout yet, but the schedule has a type for today — show it.
+      setWorkoutTypeState(hydrateType);
     }
     /* eslint-enable react/set-state-in-effect */
     hydratedRef.current = true;
@@ -113,8 +139,35 @@ export function useWorkout() {
         setLibrary(lib);
         saveLibraryCache(userId, lib);
         workoutIdRef.current = workout.id;
-        setWorkoutTypeState(workout.type ?? null);
         setFinishedState(Boolean(workout.finished_at));
+        // Resolve the effective type:
+        //   1. Server type wins when it has one (it's authoritative once synced).
+        //   2. Else if the LOCAL cache was touched (user set a type offline), keep
+        //      that — don't let the server's null clobber an un-synced choice.
+        //   3. Else (both untouched) pre-set today's scheduled type (with catch-up)
+        //      and persist it. Rest days leave it unset.
+        const untouchedServer =
+          !workout.type && (workout.exercises?.length ?? 0) === 0 && !workout.finished_at;
+        let effectiveType = workout.type ?? null;
+        if (!workout.type && !cachedUntouched) {
+          effectiveType = cachedWorkout.type ?? null; // keep un-synced local choice
+        } else if (untouchedServer && cachedUntouched) {
+          const { type: suggested } = resolveToday(
+            loadScheduleCache(),
+            loadHistoryCache(userId) ?? [],
+            today,
+          );
+          if (!isRest(suggested)) {
+            effectiveType = suggested;
+            if (!autoTypeRef.current) {
+              autoTypeRef.current = true;
+              persistWorkoutType(workout.id, suggested).catch((e) =>
+                console.error('[useWorkout] auto-set type failed', e),
+              );
+            }
+          }
+        }
+        setWorkoutTypeState(effectiveType);
         // Adopt the server copy UNLESS there are genuine un-synced LOCAL edits.
         // "Local edits" = cached desired state differs from the last-synced
         // baseline (savedRef) — NOT from the server. Comparing against the server

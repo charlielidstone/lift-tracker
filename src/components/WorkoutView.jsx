@@ -61,12 +61,12 @@ export function WorkoutView() {
       {/* Sync status — rendered as a FIXED overlay so appearing/disappearing never
           shifts the page layout (the "Syncing…" one toggles on every edit).
           Floats near the top, centered over the content column. */}
-      {((!online) || (online && pendingSync)) && (
+      {(!online || (online && pendingSync)) && (
         <div className="pointer-events-none fixed inset-x-0 top-2 z-50 flex justify-center px-4">
           {!online ? (
             <p className="max-w-md rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 shadow-sm backdrop-blur">
-              📴 Offline — changes are saved on this device only and will sync when you're back
-              online. Don't clear app data or reinstall until this clears.
+              📴 Offline — changes are saved on this device only and will sync when you're
+              back online. Don't clear app data or reinstall until this clears.
             </p>
           ) : (
             <p className="max-w-md rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700 shadow-sm backdrop-blur">
@@ -79,8 +79,15 @@ export function WorkoutView() {
       {/* Locked banner + unlock. */}
       {finished && (
         <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2">
-          <span className="text-sm font-medium text-foreground">Workout finished — locked</span>
-          <Button type="button" variant="outline" size="sm" onClick={() => setFinished(false)}>
+          <span className="text-sm font-medium text-foreground">
+            Workout finished — locked
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setFinished(false)}
+          >
             Edit workout
           </Button>
         </div>
@@ -125,8 +132,16 @@ export function WorkoutView() {
       {/* Add exercises — recommended chips + searchable picker. Hidden when locked. */}
       {!finished && (
         <div className="flex flex-col gap-3">
-          <RecommendedExercises type={type} inWorkoutIds={inWorkoutIds} onPick={addExercise} />
-          <ExercisePicker library={library} inWorkoutIds={inWorkoutIds} onPick={addExercise} />
+          <RecommendedExercises
+            type={type}
+            inWorkoutIds={inWorkoutIds}
+            onPick={addExercise}
+          />
+          <ExercisePicker
+            library={library}
+            inWorkoutIds={inWorkoutIds}
+            onPick={addExercise}
+          />
           {!hasExercises && (
             <p className="text-sm text-muted-foreground">
               No exercises yet — tap a suggestion or search to add one.
@@ -142,8 +157,9 @@ export function WorkoutView() {
         <div className="mt-2 flex flex-col gap-1.5">
           {finishWarning && (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              Couldn't finish — your sets aren't synced yet (you may be offline). They're still
-              saved on this device. Reconnect and try again; don't clear app data meanwhile.
+              Couldn't finish — your sets aren't synced yet (you may be offline). They're
+              still saved on this device. Reconnect and try again; don't clear app data
+              meanwhile.
             </p>
           )}
           <Button type="button" onClick={handleFinish} disabled={finishing}>

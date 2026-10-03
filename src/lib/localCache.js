@@ -103,3 +103,10 @@ export function loadHistoryCache(userId, storage) {
   const entry = readJSON(storage, historyKey(userId));
   return entry?.workouts ?? null;
 }
+
+// ── Weekly schedule (read-only access for the workout provider) ──
+// The ScheduleProvider owns writes to this key; useWorkout reads it to pre-set
+// today's type on an untouched workout. Stored as a plain 7-slot array.
+export function loadScheduleCache(storage) {
+  return readJSON(storage, `${NS}:schedule`);
+}

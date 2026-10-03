@@ -33,3 +33,7 @@ dev-dist
 
 # Personal workout backups (plain-text + json) — NOT for the public repo
 backups/
+
+# Python bytecode
+__pycache__/
+*.pyc
