@@ -164,6 +164,28 @@ export async function setWorkoutType(workoutId, type) {
   if (error) throw error;
 }
 
+// Apply a diff (from workoutEdit.diffWorkout) to a workout: type change, set
+// updates, deletes, and inserts. Used by the History edit screen. Inserts run
+// first so a replaced set exists before anything references it; order otherwise
+// doesn't matter (each op is independent by id).
+export async function applyWorkoutEdits(workoutId, diff) {
+  if (!isSupabaseConfigured) return;
+  if (diff.type.changed) await setWorkoutType(workoutId, diff.type.value);
+  for (const ins of diff.inserts) {
+    await insertSet({
+      id: ins.id,
+      workoutId,
+      exerciseId: ins.exerciseId,
+      weight: ins.weight,
+      reps: ins.reps,
+      rpe: ins.rpe,
+      setOrder: ins.setOrder,
+    });
+  }
+  for (const u of diff.updates) await updateSet(u.id, u.patch);
+  for (const id of diff.deletes) await deleteSet(id);
+}
+
 // Mark a workout finished (locked) or unfinished (editable). finished=true stamps
 // finished_at with now; false clears it.
 export async function setWorkoutFinished(workoutId, finished) {
