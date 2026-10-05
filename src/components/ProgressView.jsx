@@ -13,15 +13,24 @@ import { loadHistoryCache, saveHistoryCache } from '@/lib/localCache';
 import { fetchWorkoutHistory } from '@/lib/workoutRepo';
 import { exerciseProgress, metricTrend, trackedExercises, METRICS } from '@/lib/progress';
 import { overviewStats } from '@/lib/overview';
+import { weeklyStats } from '@/lib/weeklyStats';
 import { toDisplayWeight, unitLabel } from '@/lib/units';
 import { Button } from '@/components/ui/button';
 import { OverviewStats } from '@/components/OverviewStats';
 
-// Recharts is heavy (~270KB gzip) — lazy-load it so it only downloads when the
+// Recharts is heavy (~270KB gzip) — lazy-load it so it only downloads when a
 // Progress chart is actually shown, keeping the initial PWA bundle lean.
 const LineChart = lazy(() =>
   import('@/components/LineChart').then((m) => ({ default: m.LineChart })),
 );
+const BarChart = lazy(() =>
+  import('@/components/BarChart').then((m) => ({ default: m.BarChart })),
+);
+
+const WEEKLY_METRICS = [
+  { id: 'workouts', label: 'Workouts' },
+  { id: 'volume', label: 'Volume' },
+];
 
 // 'YYYY-MM-DD' → 'Sep 24' (local noon so the label doesn't drift across tz).
 function shortDate(iso) {
@@ -37,6 +46,7 @@ export function ProgressView() {
   const [loading, setLoading] = useState(isSupabaseConfigured && !loadHistoryCache(userId));
   const [selected, setSelected] = useState(null); // exerciseId
   const [metric, setMetric] = useState('e1rm');
+  const [weeklyMetric, setWeeklyMetric] = useState('workouts');
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -60,11 +70,24 @@ export function ProgressView() {
 
   const exercises = useMemo(() => trackedExercises(history), [history]);
   const overview = useMemo(() => overviewStats(history), [history]);
+  const weekly = useMemo(() => weeklyStats(history, 12), [history]);
   const series = useMemo(
     () => (selected ? exerciseProgress(history, selected) : []),
     [history, selected],
   );
   const selectedName = exercises.find((e) => e.exerciseId === selected)?.name ?? '';
+
+  // Weekly bars (last 12 weeks). Volume converts lb→display unit; workouts are counts.
+  const weeklyIsVolume = weeklyMetric === 'volume';
+  const weeklyBars = weekly.map((w) => ({
+    label: w.label,
+    y: weeklyIsVolume ? toDisplayWeight(w.volume, unit) : w.workouts,
+  }));
+  const formatWeeklyY = weeklyIsVolume
+    ? (v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(Math.round(v)))
+    : (v) => String(Math.round(v));
+  const weeklyTooltip = weeklyIsVolume ? `${unitLabel(unit)}·reps` : 'workouts';
+  const weeklyHasData = weekly.some((w) => w.workouts > 0);
 
   // Chart points in DISPLAY units; weight-based metrics convert lb→unit.
   const isWeightMetric = metric !== 'volume'; // volume shown as-is (lb·reps scale)
@@ -99,6 +122,35 @@ export function ProgressView() {
     return (
       <div className="flex flex-col gap-4">
         <OverviewStats stats={overview} unit={unit} />
+
+        {/* Weekly trend — Strava-style bars, last 12 weeks */}
+        {weeklyHasData && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-muted-foreground">Last 12 weeks</p>
+              <div className="flex gap-2">
+                {WEEKLY_METRICS.map((m) => (
+                  <Button
+                    key={m.id}
+                    type="button"
+                    size="sm"
+                    variant={weeklyMetric === m.id ? 'default' : 'outline'}
+                    onClick={() => setWeeklyMetric(m.id)}
+                    aria-pressed={weeklyMetric === m.id}
+                  >
+                    {m.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <Suspense
+              fallback={<p className="text-xs text-muted-foreground">Loading chart…</p>}
+            >
+              <BarChart bars={weeklyBars} formatY={formatWeeklyY} tooltipLabel={weeklyTooltip} />
+            </Suspense>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
           <p className="text-xs font-medium text-muted-foreground">
             By exercise — tap to see it over time.
