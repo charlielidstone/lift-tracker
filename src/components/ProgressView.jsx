@@ -23,8 +23,8 @@ import { OverviewStats } from '@/components/OverviewStats';
 const LineChart = lazy(() =>
   import('@/components/LineChart').then((m) => ({ default: m.LineChart })),
 );
-const BarChart = lazy(() =>
-  import('@/components/BarChart').then((m) => ({ default: m.BarChart })),
+const WeeklyChart = lazy(() =>
+  import('@/components/AreaChart').then((m) => ({ default: m.AreaChart })),
 );
 
 const WEEKLY_METRICS = [
@@ -146,7 +146,7 @@ export function ProgressView() {
             <Suspense
               fallback={<p className="text-xs text-muted-foreground">Loading chart…</p>}
             >
-              <BarChart bars={weeklyBars} formatY={formatWeeklyY} tooltipLabel={weeklyTooltip} />
+              <WeeklyChart points={weeklyBars} formatY={formatWeeklyY} tooltipLabel={weeklyTooltip} />
             </Suspense>
           </div>
         )}
