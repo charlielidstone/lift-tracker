@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { WorkoutProvider } from '@/hooks/WorkoutProvider';
 import { SettingsProvider } from '@/hooks/SettingsProvider';
 import { ScheduleProvider } from '@/hooks/ScheduleProvider';
+import { PlansProvider } from '@/hooks/PlansProvider';
 import { PWAUpdater } from '@/components/PWAUpdater';
 
 // Whether login is REQUIRED to use the app. Off by default so the app keeps working
@@ -66,16 +67,18 @@ function MainApp() {
   return (
     <WorkoutProvider>
       <ScheduleProvider>
-        {/* pb-24 leaves room for the fixed bottom nav */}
-        <div className="mx-auto max-w-md p-4 pb-24">
-          <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
-          {screen === 'workout' && <WorkoutScreen />}
-          {screen === 'library' && <LibraryView />}
-          {screen === 'plan' && <PlanView />}
-          {screen === 'progress' && <ProgressView />}
-          {screen === 'settings' && <SettingsView />}
-        </div>
-        <BottomNav active={screen} onChange={setScreen} />
+        <PlansProvider>
+          {/* pb-24 leaves room for the fixed bottom nav */}
+          <div className="mx-auto max-w-md p-4 pb-24">
+            <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
+            {screen === 'workout' && <WorkoutScreen />}
+            {screen === 'library' && <LibraryView />}
+            {screen === 'plan' && <PlanView />}
+            {screen === 'progress' && <ProgressView />}
+            {screen === 'settings' && <SettingsView />}
+          </div>
+          <BottomNav active={screen} onChange={setScreen} />
+        </PlansProvider>
       </ScheduleProvider>
     </WorkoutProvider>
   );

@@ -12,6 +12,7 @@ import { fetchWorkoutHistory } from '@/lib/workoutRepo';
 import { WORKOUT_TYPES, localToday } from '@/lib/defaults';
 import { REST, WEEKDAY_LABELS, WEEKDAY_ORDER, resolveToday, scheduledType } from '@/lib/schedule';
 import { useSchedule } from '@/hooks/ScheduleProvider';
+import { PlanEditor } from '@/components/PlanEditor';
 
 const OPTIONS = [...WORKOUT_TYPES, REST];
 
@@ -148,6 +149,11 @@ export function PlanView() {
           );
         })}
       </ul>
+
+      {/* Session plans — the CONTENT of each type (exercises + target sets×reps). */}
+      <div className="mt-2 border-t border-border pt-4">
+        <PlanEditor />
+      </div>
     </div>
   );
 }
