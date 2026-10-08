@@ -7,8 +7,10 @@ import { useState } from 'react';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExercisePicker } from '@/components/ExercisePicker';
 import { RecommendedExercises } from '@/components/RecommendedExercises';
+import { PlanChecklist } from '@/components/PlanChecklist';
 import { Button } from '@/components/ui/button';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
+import { usePlans } from '@/hooks/PlansProvider';
 import { WORKOUT_TYPES } from '@/lib/defaults';
 
 export function WorkoutView() {
@@ -29,6 +31,7 @@ export function WorkoutView() {
     removeExercise,
     toggle,
   } = useWorkoutContext();
+  const { getPlan } = usePlans();
   const [finishing, setFinishing] = useState(false);
   const [finishWarning, setFinishWarning] = useState(false);
 
@@ -49,6 +52,7 @@ export function WorkoutView() {
 
   const hasExercises = exercises.length > 0;
   const inWorkoutIds = exercises.map((e) => e.exerciseId);
+  const plan = type ? getPlan(type) : null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -116,6 +120,17 @@ export function WorkoutView() {
           );
         })}
       </div>
+
+      {/* Plan checklist for the current type — targets + live progress, done in any
+          order. Adds are disabled once the workout is locked. */}
+      {plan && (
+        <PlanChecklist
+          plan={plan}
+          exercises={exercises}
+          inWorkoutIds={inWorkoutIds}
+          onAdd={finished ? undefined : addExercise}
+        />
+      )}
 
       {exercises.map((exercise) => (
         <ExerciseCard
