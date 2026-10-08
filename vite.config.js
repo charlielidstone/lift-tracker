@@ -56,8 +56,11 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        // Enable the SW in `vite dev` so we can test offline behavior locally.
-        enabled: true,
+        // Service worker DISABLED in `vite dev`: the dev SW is flaky — it 404s on a
+        // missing dev-dist/sw.js after a `vite build` runs alongside the dev server,
+        // and serves stale modules. Test PWA/offline behavior on the deployed build
+        // instead. Production SW (dist/sw.js) is unaffected.
+        enabled: false,
         type: 'module',
       },
     }),
