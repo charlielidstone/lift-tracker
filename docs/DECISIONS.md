@@ -126,3 +126,30 @@ Goal: log a whole workout at the gym with no/spotty signal; sync when back onlin
 - **UI:** offline banner + "Syncing…" indicator (`online` / `pendingSync` from the hook).
 - **Still TODO:** PWA service worker so the app SHELL (code/assets) loads with no
   connection — currently offline works only after the app has been opened once online.
+
+## Session plans (Plan tab, content layer) — 2026-10-08
+
+The Plan tab started as a weekday→type schedule only. This adds the CONTENT of
+each session type: which exercises, and per exercise a target sets × rep-range
+(+ optional RPE).
+
+- **Plan = per session TYPE** (Push/Pull/Legs/…), one to start. Decided to model
+  as two tables (`plans` + `plan_exercises`) rather than a flat per-type table so
+  **variants later** (Push A / Push B) are just extra `plans` rows — no schema
+  change. `plans.name` defaults to 'Default' for now.
+- **Order is deliberately NOT a plan concept.** Charlie can't plan exercise order
+  — it depends on which machine is free at the gym. So a plan is an UNORDERED
+  checklist; `plan_exercises.position` is editor display order only, never gym
+  order. On Today the planned exercises show as a to-do list done in any order,
+  each filling toward its target (e.g. "2/3 sets · 6–8").
+- **Weight is NOT planned** — it auto-fills from last session (existing smart
+  defaults, `lastWeight.js`). A plan prescribes sets × reps (+ optional RPE) so it
+  tracks strength instead of going stale.
+- **RPE included** per exercise (nullable): lets a plan encode heavy-vs-pump intent
+  (e.g. 3×6–8 @8 vs 3×12–15) without a separate "block" field.
+- **Beat-the-plan flag:** Today flags when a set hits the TOP of the rep-range at an
+  RPE low enough to say "add weight next time" (progression nudge).
+- **Migration 007** (`007_add_plans.sql`): owner-only RLS mirroring 005;
+  plan_exercises inherit ownership through parent plan (like set_entries→workouts).
+  Client-generated UUIDs per convention. Feature must degrade gracefully (localStorage)
+  until Charlie runs the migration.
