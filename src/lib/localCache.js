@@ -104,6 +104,23 @@ export function loadHistoryCache(userId, storage) {
   return entry?.workouts ?? null;
 }
 
+// ── Session plans (per-type exercise templates, offline-readable) ──
+// The PlansProvider owns writes; cached so the Plan tab and Today checklist show
+// instantly and survive an offline reload. Plans are low-stakes templates, so this
+// is a plain desired-state cache (no synced-baseline outbox like workouts).
+export function plansKey(userId) {
+  return `${NS}:plans:${userId || 'anon'}`;
+}
+
+export function savePlansCache(userId, plans, storage) {
+  return writeJSON(storage, plansKey(userId), { plans, cachedAt: Date.now() });
+}
+
+export function loadPlansCache(userId, storage) {
+  const entry = readJSON(storage, plansKey(userId));
+  return entry?.plans ?? null;
+}
+
 // ── Weekly schedule (read-only access for the workout provider) ──
 // The ScheduleProvider owns writes to this key; useWorkout reads it to pre-set
 // today's type on an untouched workout. Stored as a plain 7-slot array.
