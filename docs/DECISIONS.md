@@ -153,3 +153,9 @@ each session type: which exercises, and per exercise a target sets × rep-range
   plan_exercises inherit ownership through parent plan (like set_entries→workouts).
   Client-generated UUIDs per convention. Feature must degrade gracefully (localStorage)
   until Charlie runs the migration.
+- **Plan sync = full durable outbox (revised).** Initially shipped with simple
+  optimistic fire-and-forget sync; Charlie asked for zero data-loss risk, so it was
+  upgraded to the same outbox as workouts: a separate persisted SYNCED BASELINE,
+  `diffPlanOps` (pure, tested), debounced flush + flush-on-reconnect, and the
+  adopt-server-unless-local-pending reconcile rule. Offline plan edits now survive a
+  reload and sync when back online, with an amber offline/syncing banner in the editor.
