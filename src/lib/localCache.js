@@ -110,3 +110,22 @@ export function loadHistoryCache(userId, storage) {
 export function loadScheduleCache(storage) {
   return readJSON(storage, `${NS}:schedule`);
 }
+
+// ── Notes scratchpad (per-user single text blob, synced) ─────
+// Offline-first: the Notes tab writes here on every keystroke and pushes to the
+// server debounced. `updatedAt` (epoch ms) lets load() pick the newer of the
+// cached vs server copy.
+export function noteKey(userId) {
+  return `${NS}:note:${userId || 'anon'}`;
+}
+
+export function saveNoteCache(userId, content, updatedAt, storage) {
+  return writeJSON(storage, noteKey(userId), {
+    content,
+    updatedAt: updatedAt ?? Date.now(),
+  });
+}
+
+export function loadNoteCache(userId, storage) {
+  return readJSON(storage, noteKey(userId)); // { content, updatedAt } | null
+}

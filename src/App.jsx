@@ -2,6 +2,7 @@ import { useState } from 'react';
 import './App.css';
 import { WorkoutView } from './components/WorkoutView';
 import { WorkoutHistory } from './components/WorkoutHistory';
+import { NotesView } from './components/NotesView';
 import { LibraryView } from './components/LibraryView';
 import { PlanView } from './components/PlanView';
 import { ProgressView } from './components/ProgressView';
@@ -23,6 +24,7 @@ const REQUIRE_AUTH = import.meta.env.VITE_REQUIRE_AUTH === 'true';
 const WORKOUT_SUBTABS = [
   { id: 'today', label: 'Today' },
   { id: 'history', label: 'History' },
+  { id: 'notes', label: 'Notes' },
 ];
 
 function WorkoutScreen() {
@@ -43,7 +45,9 @@ function WorkoutScreen() {
           </Button>
         ))}
       </div>
-      {sub === 'today' ? <WorkoutView /> : <WorkoutHistory />}
+      {sub === 'today' && <WorkoutView />}
+      {sub === 'history' && <WorkoutHistory />}
+      {sub === 'notes' && <NotesView />}
     </>
   );
 }

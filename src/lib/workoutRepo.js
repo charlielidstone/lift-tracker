@@ -236,3 +236,30 @@ export async function deleteExerciseSets(workoutId, exerciseId) {
     .eq('exercise_id', exerciseId);
   if (error) throw error;
 }
+
+// ── Notes scratchpad (one free-text row per user) ────────────
+// Returns { content, updatedAt } or null when there's no note yet.
+export async function fetchNote() {
+  if (!isSupabaseConfigured) return null;
+  const uid = await currentUserId();
+  if (!uid) return null;
+  const { data, error } = await supabase
+    .from('user_notes')
+    .select('content, updated_at')
+    .eq('user_id', uid)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? { content: data.content ?? '', updatedAt: data.updated_at } : null;
+}
+
+// Upsert the user's note. updatedAt is set server-side (ISO now) so other
+// devices can resolve which copy is newer.
+export async function saveNote(content) {
+  if (!isSupabaseConfigured) return;
+  const uid = await currentUserId();
+  if (!uid) return;
+  const { error } = await supabase
+    .from('user_notes')
+    .upsert({ user_id: uid, content, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  if (error) throw error;
+}
