@@ -84,3 +84,16 @@ export function hasPendingOps(desired, saved) {
     exerciseDeletes.length > 0
   );
 }
+
+// Data-loss guard (third-incident fix). A FINISHED workout should never be emptied
+// by a background sync. This detects the destructive pattern: the desired state has
+// NO sets while the reference (server copy / synced baseline) still DOES — i.e. a
+// poisoned cache would make diffOps delete every set of a locked workout.
+//
+// Used two ways in useWorkout:
+//   • reconcile: if this holds for cached-desired vs the server, ADOPT the server
+//     (self-heal) instead of treating the empty cache as a real local edit;
+//   • flush: if this holds for desired vs the synced baseline, REFUSE the deletes.
+export function isFinishedWorkoutWipe({ finished, desiredSetCount, referenceSetCount }) {
+  return Boolean(finished) && desiredSetCount === 0 && referenceSetCount > 0;
+}

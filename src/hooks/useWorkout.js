@@ -25,7 +25,7 @@ import {
   saveSyncedSnapshot,
   saveWorkoutCache,
 } from '@/lib/localCache';
-import { diffOps, hasPendingOps, mapToRows, rowsToMap, snapshotSets } from '@/lib/syncDiff';
+import { diffOps, hasPendingOps, isFinishedWorkoutWipe, mapToRows, rowsToMap, snapshotSets } from '@/lib/syncDiff';
 import {
   deleteExerciseSets,
   deleteSet,
@@ -65,9 +65,13 @@ export function useWorkout() {
   const autoTypeRef = useRef(false); // schedule auto-set attempted once
   const exercisesRef = useRef(exercises); // latest exercises for reconnect flush
   const historyRef = useRef(null); // cached workout history → smart default weights
+  const finishedRef = useRef(finished); // latest finished flag for the flush guard
   useEffect(() => {
     exercisesRef.current = exercises;
   }, [exercises]);
+  useEffect(() => {
+    finishedRef.current = finished;
+  }, [finished]);
 
   // Persist savedRef both in memory and to localStorage so the outbox baseline
   // survives an offline reload (else local edits look already-saved and get lost).
@@ -175,10 +179,26 @@ export function useWorkout() {
         // as a local edit and freeze the stale cache. When there are no pending
         // local edits, the server always wins.
         const serverSnap = snapshotSets(workout.exercises);
+        const cachedDesired = snapshotSets(cachedWorkout?.exercises ?? []);
         const localEdits = cachedWorkout
-          ? hasPendingOps(snapshotSets(cachedWorkout.exercises ?? []), savedRef.current)
+          ? hasPendingOps(cachedDesired, savedRef.current)
           : false;
-        if (!localEdits) {
+        // Data-loss self-heal: if the cached desired is an EMPTY wipe of a FINISHED
+        // workout the server still has sets for, that "local edit" is the destructive
+        // delete bug (poisoned cache), NOT a real edit — adopt the server instead of
+        // keeping the empty cache (which would otherwise flush deletes). See the
+        // third data-loss incident + isFinishedWorkoutWipe.
+        const finishedWipe = isFinishedWorkoutWipe({
+          finished: Boolean(workout.finished_at),
+          desiredSetCount: cachedDesired.size,
+          referenceSetCount: serverSnap.size,
+        });
+        if (finishedWipe) {
+          console.error(
+            '[useWorkout] recovered a finished-workout wipe from cache — adopting server copy',
+          );
+        }
+        if (!localEdits || finishedWipe) {
           setExercises(workout.exercises);
         }
         commitSynced(serverSnap);
@@ -206,6 +226,26 @@ export function useWorkout() {
     const desired = snapshotSets(exercisesRef.current);
     const saved = savedRef.current;
     const { inserts, updates, setDeletes, exerciseDeletes } = diffOps(desired, saved);
+
+    // Data-loss guard: refuse to delete the sets of a FINISHED workout when the
+    // desired state is empty but the baseline still has sets (poisoned cache). This
+    // is the destructive pattern behind the third data-loss incident — never run it.
+    if (
+      isFinishedWorkoutWipe({
+        finished: finishedRef.current,
+        desiredSetCount: desired.size,
+        referenceSetCount: saved.size,
+      }) &&
+      (setDeletes.length > 0 || exerciseDeletes.length > 0)
+    ) {
+      console.error(
+        '[useWorkout] BLOCKED a destructive flush: refusing to empty a finished workout ' +
+          `(${setDeletes.length} set + ${exerciseDeletes.length} exercise deletes). ` +
+          'Reload to re-adopt the server copy.',
+      );
+      setPendingSync(false);
+      return { ok: false, pending: false, reason: 'blocked-wipe' };
+    }
 
     const ops = [
       ...inserts.map((row) => insertSet({ ...row, workoutId })),

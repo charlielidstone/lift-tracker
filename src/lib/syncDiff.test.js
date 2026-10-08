@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   diffOps,
   hasPendingOps,
+  isFinishedWorkoutWipe,
   mapToRows,
   rowChanged,
   rowsToMap,
@@ -108,5 +109,45 @@ describe('hasPendingOps', () => {
     const saved = snapshotSets([ex('e1', 'bench', [set('s1', 100)])]);
     const desired = snapshotSets([ex('e1', 'bench', [set('s1', 105)])]);
     expect(hasPendingOps(desired, saved)).toBe(true);
+  });
+});
+
+describe('isFinishedWorkoutWipe (data-loss guard)', () => {
+  it('flags an empty desired against a non-empty reference when finished', () => {
+    expect(
+      isFinishedWorkoutWipe({ finished: true, desiredSetCount: 0, referenceSetCount: 20 }),
+    ).toBe(true);
+  });
+
+  it('does NOT flag when the workout is not finished (legit full removal allowed)', () => {
+    expect(
+      isFinishedWorkoutWipe({ finished: false, desiredSetCount: 0, referenceSetCount: 20 }),
+    ).toBe(false);
+  });
+
+  it('does NOT flag when desired still has sets (normal edit/finish-flush)', () => {
+    expect(
+      isFinishedWorkoutWipe({ finished: true, desiredSetCount: 5, referenceSetCount: 20 }),
+    ).toBe(false);
+  });
+
+  it('does NOT flag when the reference is also empty (nothing to lose)', () => {
+    expect(
+      isFinishedWorkoutWipe({ finished: true, desiredSetCount: 0, referenceSetCount: 0 }),
+    ).toBe(false);
+  });
+
+  it('matches the exact incident: finished + empty cache vs 20 server sets → blocked', () => {
+    const serverSets = snapshotSets([
+      ex('e1', 'curl', [set('a'), set('b')]),
+      ex('e2', 'press', [set('c'), set('d')]),
+    ]);
+    const emptyDesired = snapshotSets([]);
+    const wipe = isFinishedWorkoutWipe({
+      finished: true,
+      desiredSetCount: emptyDesired.size,
+      referenceSetCount: serverSets.size,
+    });
+    expect(wipe).toBe(true);
   });
 });
