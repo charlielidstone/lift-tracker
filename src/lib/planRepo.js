@@ -104,3 +104,11 @@ export async function deletePlanExercise(id) {
   const { error } = await supabase.from('plan_exercises').delete().eq('id', id);
   if (error) throw error;
 }
+
+// Delete a whole plan (its plan_exercises cascade via the FK). Used when a plan
+// row is removed entirely; the outbox normally only inserts/edits plans.
+export async function deletePlan(id) {
+  if (!isSupabaseConfigured) return;
+  const { error } = await supabase.from('plans').delete().eq('id', id);
+  if (error) throw error;
+}

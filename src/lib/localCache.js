@@ -121,6 +121,22 @@ export function loadPlansCache(userId, storage) {
   return entry?.plans ?? null;
 }
 
+// Plans synced baseline (outbox baseline — the last SERVER-CONFIRMED snapshot).
+// Kept separate from the desired-state plans cache so an offline reload still
+// yields the pending un-synced ops via diffPlanOps(desired, synced).
+export function plansSyncedKey(userId) {
+  return `${NS}:plans-synced:${userId || 'anon'}`;
+}
+
+export function savePlansSynced(userId, rows, storage) {
+  return writeJSON(storage, plansSyncedKey(userId), { rows, cachedAt: Date.now() });
+}
+
+export function loadPlansSynced(userId, storage) {
+  const entry = readJSON(storage, plansSyncedKey(userId));
+  return entry?.rows ?? null;
+}
+
 // ── Weekly schedule (read-only access for the workout provider) ──
 // The ScheduleProvider owns writes to this key; useWorkout reads it to pre-set
 // today's type on an untouched workout. Stored as a plain 7-slot array.

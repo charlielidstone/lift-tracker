@@ -133,7 +133,7 @@ function PlanTypeCard({ type }) {
 
 export function PlanEditor() {
   const { schedule } = useSchedule();
-  const { plans } = usePlans();
+  const { plans, online, pendingSync } = usePlans();
 
   // Types to show: those in the weekly schedule ∪ those that already have a plan.
   // If neither (fresh user), fall back to all types so there's somewhere to start.
@@ -154,6 +154,13 @@ export function PlanEditor() {
         Set the exercises and target sets × reps for each session type. On Today these show as a
         checklist you can tick off in any order.
       </p>
+      {(!online || pendingSync) && (
+        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-700">
+          {!online
+            ? '📴 Offline — plan changes are saved on this device and will sync when you reconnect. Don’t clear app data until this clears.'
+            : 'Syncing plan changes… don’t clear app data until this finishes.'}
+        </p>
+      )}
       <ul className="flex flex-col gap-2">
         {types.map((t) => (
           <PlanTypeCard key={t} type={t} />
