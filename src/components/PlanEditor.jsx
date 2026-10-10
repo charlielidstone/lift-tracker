@@ -2,14 +2,20 @@
 // each workout type (which exercises, and per exercise target sets × rep-range +
 // RPE). Order is NOT edited here — a plan is an unordered checklist at the gym.
 //
-// Shows a card per type that's either in the weekly schedule or already has a plan.
+// Each plan card has a view mode (read-only chips) and an Edit mode (tap the
+// Edit button). In Edit mode the stats become tap-to-expand +/- Steppers — the
+// SAME EditableStat control the workout view (SetRow) uses — and the exercise
+// picker + per-row remove buttons appear. Save just returns to view mode;
+// persistence is automatic via PlansProvider's durable outbox.
+//
 // State comes from PlansProvider; the exercise library from the shared WorkoutProvider.
 
-import { useMemo, useState } from 'react';
-import { ChevronDown, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Check, ChevronDown, Pencil, Trash2 } from 'lucide-react';
 import { cn } from 'cn';
-import { Stepper } from '@/components/Stepper';
+import { EditableStat } from '@/components/EditableStat';
 import { ExercisePicker } from '@/components/ExercisePicker';
+import { Button } from '@/components/ui/button';
 import { usePlans } from '@/hooks/PlansProvider';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
 import { useSchedule } from '@/hooks/ScheduleProvider';
@@ -18,52 +24,82 @@ import { REST } from '@/lib/schedule';
 
 const SETS_BOUNDS = { min: 1, max: 12 };
 
-function PlanExerciseRow({ planId, exercise, onUpdate, onRemove }) {
+function PlanExerciseRow({ planId, exercise, onUpdate, onRemove, readOnly }) {
+  // Which stat is expanded into a Stepper (only one at a time). null = all collapsed.
+  const [activeField, setActiveField] = useState(null);
+  const rowRef = useRef(null);
+
+  const toggleField = (field) => setActiveField((cur) => (cur === field ? null : field));
+
+  // Collapse when the user taps anywhere outside this row (mirrors SetRow).
+  useEffect(() => {
+    if (!activeField) return;
+    const onPointerDown = (e) => {
+      if (!rowRef.current?.contains(e.target)) setActiveField(null);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [activeField]);
+
   return (
-    <li className="rounded-lg border border-border px-3 py-2.5">
+    <li ref={rowRef} className="rounded-lg border border-border px-3 py-2.5">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="text-sm font-medium text-foreground">{exercise.name}</span>
-        <button
-          type="button"
-          aria-label={`Remove ${exercise.name}`}
-          onClick={onRemove}
-          className="text-muted-foreground hover:text-destructive"
-        >
-          <Trash2 className="size-4" />
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            aria-label={`Remove ${exercise.name}`}
+            onClick={onRemove}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Stepper
+        <EditableStat
           label="sets"
           value={exercise.targetSets}
           step={1}
           min={SETS_BOUNDS.min}
           max={SETS_BOUNDS.max}
+          active={activeField === 'sets'}
+          onActivate={() => toggleField('sets')}
           onChange={(v) => onUpdate(planId, exercise.id, { targetSets: v })}
+          readOnly={readOnly}
         />
-        <Stepper
+        <EditableStat
           label="min reps"
           value={exercise.repMin}
           step={STEP.reps}
           min={BOUNDS.reps.min}
           max={exercise.repMax}
+          active={activeField === 'repMin'}
+          onActivate={() => toggleField('repMin')}
           onChange={(v) => onUpdate(planId, exercise.id, { repMin: v })}
+          readOnly={readOnly}
         />
-        <Stepper
+        <EditableStat
           label="max reps"
           value={exercise.repMax}
           step={STEP.reps}
           min={exercise.repMin}
           max={BOUNDS.reps.max}
+          active={activeField === 'repMax'}
+          onActivate={() => toggleField('repMax')}
           onChange={(v) => onUpdate(planId, exercise.id, { repMax: v })}
+          readOnly={readOnly}
         />
-        <Stepper
+        <EditableStat
           label="RPE"
           value={exercise.rpe ?? BOUNDS.rpe.max}
           step={STEP.rpe}
           min={BOUNDS.rpe.min}
           max={BOUNDS.rpe.max}
+          active={activeField === 'rpe'}
+          onActivate={() => toggleField('rpe')}
           onChange={(v) => onUpdate(planId, exercise.id, { rpe: v })}
+          readOnly={readOnly}
         />
       </div>
     </li>
@@ -74,17 +110,24 @@ function PlanTypeCard({ type }) {
   const { getPlan, addExerciseToPlan, updatePlanExercise, removePlanExercise } = usePlans();
   const { library } = useWorkoutContext();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const plan = getPlan(type);
   const exercises = plan?.exercises ?? [];
   const inPlanIds = exercises.map((e) => e.exerciseId);
+
+  // Collapsing the card always drops back to view mode.
+  const toggleOpen = () => {
+    setOpen((o) => !o);
+    setEditing(false);
+  };
 
   return (
     <li className="rounded-lg border border-border">
       <button
         type="button"
         className="flex w-full items-center justify-between gap-2 px-3 py-2.5"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleOpen}
       >
         <span className="text-sm font-medium text-foreground">{type}</span>
         <span className="flex items-center gap-2">
@@ -101,6 +144,25 @@ function PlanTypeCard({ type }) {
 
       {open && (
         <div className="flex flex-col gap-2 border-t border-border p-3">
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              size="sm"
+              variant={editing ? 'default' : 'outline'}
+              onClick={() => setEditing((e) => !e)}
+            >
+              {editing ? (
+                <>
+                  <Check className="size-4" /> Save
+                </>
+              ) : (
+                <>
+                  <Pencil className="size-4" /> Edit
+                </>
+              )}
+            </Button>
+          </div>
+
           {exercises.length > 0 && (
             <ul className="flex flex-col gap-2">
               {exercises.map((ex) => (
@@ -110,19 +172,25 @@ function PlanTypeCard({ type }) {
                   exercise={ex}
                   onUpdate={updatePlanExercise}
                   onRemove={() => removePlanExercise(plan.id, ex.id)}
+                  readOnly={!editing}
                 />
               ))}
             </ul>
           )}
-          <ExercisePicker
-            library={library}
-            inWorkoutIds={inPlanIds}
-            onPick={(libEx) => addExerciseToPlan(type, libEx)}
-          />
+
+          {editing && (
+            <ExercisePicker
+              library={library}
+              inWorkoutIds={inPlanIds}
+              onPick={(libEx) => addExerciseToPlan(type, libEx)}
+            />
+          )}
+
           {exercises.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Add the exercises you want in a {type} session — order doesn&apos;t matter, you&apos;ll
-              do them in whatever order a machine is free.
+              {editing
+                ? `Add the exercises you want in a ${type} session — order doesn't matter, you'll do them in whatever order a machine is free.`
+                : 'No exercises yet — tap Edit to build this plan.'}
             </p>
           )}
         </div>
