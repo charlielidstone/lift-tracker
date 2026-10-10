@@ -15,6 +15,7 @@ import { Check, ChevronDown, Pencil, Trash2 } from 'lucide-react';
 import { cn } from 'cn';
 import { EditableStat } from '@/components/EditableStat';
 import { ExercisePicker } from '@/components/ExercisePicker';
+import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { Button } from '@/components/ui/button';
 import { usePlans } from '@/hooks/PlansProvider';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
@@ -44,13 +45,16 @@ function PlanExerciseRow({ planId, exercise, onUpdate, onRemove, readOnly }) {
   return (
     <li ref={rowRef} className="rounded-lg border border-border px-3 py-2.5">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-foreground">{exercise.name}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <ExerciseThumb name={exercise.name} size="sm" />
+          <span className="truncate text-sm font-medium text-foreground">{exercise.name}</span>
+        </div>
         {!readOnly && (
           <button
             type="button"
             aria-label={`Remove ${exercise.name}`}
             onClick={onRemove}
-            className="text-muted-foreground hover:text-destructive"
+            className="shrink-0 text-muted-foreground hover:text-destructive"
           >
             <Trash2 className="size-4" />
           </button>

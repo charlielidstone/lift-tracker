@@ -17,6 +17,7 @@ const NAME_TO_SLUG = {
   'assisted wide grip dips': 'assisted-dip',
   'bench press': 'bench-press',
   'cable bicep curl': 'bicep-curl',
+  'cable lat raises': 'cable-lateral-raise',
   'dumbbell lateral raise': 'lateral-raise',
   'dumbbell shoulder press': 'seated-dumbbell-press',
   'incline bench bicep curl': 'bicep-curl',
