@@ -255,6 +255,90 @@ def cmd_workout(args):
         print(f"deleted workout(s) for {date}")
 
 
+# ── Weekly schedule (user_schedule, migration 008) ───────────
+# A schedule is a single 7-slot array per user, index = JS getDay() (0=Sun..6=Sat).
+REST_TYPE = "Rest"
+WORKOUT_TYPES = ["Push", "Pull", "Legs", "Upper", "Lower", "Full body", "Arms"]
+_DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+# Accepts sun/sunday/0 … sat/saturday/6 (case-insensitive).
+_DAY_ALIASES = {}
+for _i, _full in enumerate(_DAY_NAMES):
+    _DAY_ALIASES[_full.lower()] = _i
+    _DAY_ALIASES[_full[:3].lower()] = _i
+    _DAY_ALIASES[str(_i)] = _i
+
+
+def _parse_day(ref):
+    key = ref.strip().lower()
+    if key not in _DAY_ALIASES:
+        die(f"unknown day '{ref}' — use Mon/Tue/.../Sun or 0-6 (0=Sun)")
+    return _DAY_ALIASES[key]
+
+
+def _canon_type(ref):
+    """Canonicalize a type string to a known WORKOUT_TYPES value or 'Rest'."""
+    key = ref.strip().lower()
+    if key in ("rest", "off"):
+        return REST_TYPE
+    for t in WORKOUT_TYPES:
+        if t.lower() == key:
+            return t
+    die(f"unknown type '{ref}' — one of: {', '.join(WORKOUT_TYPES)}, Rest")
+
+
+def account_user_id(override=None):
+    """The user_id to own a schedule row. Explicit --user wins; otherwise infer
+    from the most recent workout (single-user setup)."""
+    if override:
+        return override
+    rows = rest("GET", "workouts", params={
+        "select": "user_id", "order": "created_at.desc", "limit": "1",
+    })
+    uid = rows[0].get("user_id") if rows else None
+    if not uid:
+        die("could not determine user_id — pass --user <uuid>")
+    return uid
+
+
+def _fetch_schedule(uid):
+    rows = rest("GET", "user_schedule", params={
+        "user_id": f"eq.{uid}", "select": "schedule",
+    })
+    sched = rows[0]["schedule"] if rows else None
+    if not isinstance(sched, list):
+        sched = []
+    # Normalize to 7 slots.
+    return [(sched[i] if i < len(sched) and sched[i] else REST_TYPE) for i in range(7)]
+
+
+def _print_schedule(sched):
+    # Monday-first display, like the app.
+    for dow in [1, 2, 3, 4, 5, 6, 0]:
+        print(f"  {_DAY_NAMES[dow]:<10} {sched[dow]}")
+
+
+def cmd_schedule(args):
+    uid = account_user_id(getattr(args, "user", None))
+    if args.action in (None, "show"):
+        sched = _fetch_schedule(uid)
+        if args.json:
+            print(json.dumps(sched)); return
+        _print_schedule(sched)
+    elif args.action == "set":
+        dow = _parse_day(args.day)
+        wtype = _canon_type(args.type)
+        sched = _fetch_schedule(uid)
+        sched[dow] = wtype
+        from datetime import timezone
+        rest("POST", "user_schedule", body={
+            "user_id": uid,
+            "schedule": sched,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }, prefer="resolution=merge-duplicates,return=minimal")
+        print(f"set {_DAY_NAMES[dow]} → {wtype}")
+        print("(reload the app to see it — it doesn't live-sync)")
+
+
 def cmd_export(args):
     """Dump ALL workouts to a human-readable .txt (and a .json sidecar for exact
     restore). This is the plain-text backup — run it on a schedule so a lost
@@ -362,6 +446,20 @@ def build_parser():
     wsub = w.add_subparsers(dest="action", required=True)
     wr = wsub.add_parser("rm", help="delete a workout"); wr.add_argument("--date", default=None)
     w.set_defaults(func=cmd_workout)
+
+    # schedule (weekly weekday→type plan, synced per-user)
+    sc = sub.add_parser("schedule", help="show or set the weekly training schedule")
+    scsub = sc.add_subparsers(dest="action")
+    scshow = scsub.add_parser("show", help="show the weekly schedule")
+    scshow.add_argument("--json", action="store_true")
+    scshow.add_argument("--user", default=None, help="user_id override (uuid)")
+    scset = scsub.add_parser("set", help="set a weekday's type")
+    scset.add_argument("day", help="Mon/Tue/.../Sun or 0-6 (0=Sun)")
+    scset.add_argument("type", help="Push/Pull/Legs/Upper/Lower/Full body/Arms/Rest")
+    scset.add_argument("--user", default=None, help="user_id override (uuid)")
+    sc.add_argument("--json", action="store_true")
+    sc.add_argument("--user", default=None, help="user_id override (uuid)")
+    sc.set_defaults(func=cmd_schedule)
 
     # export (plain-text + json backup of ALL workouts)
     ex2 = sub.add_parser("export", help="back up all workouts to plain text + json")
