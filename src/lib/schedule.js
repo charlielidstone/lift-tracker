@@ -17,7 +17,7 @@ export const REST = 'Rest';
 
 // Monday-first weekday order for display, mapped to JS getDay() indexes.
 // [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
-export const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+export const WEEKDAY_ORDER = [0, 1, 2, 3, 4, 5, 6];
 export const WEEKDAY_LABELS = {
   0: 'Sunday',
   1: 'Monday',
