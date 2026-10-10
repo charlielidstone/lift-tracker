@@ -27,7 +27,15 @@ export const WEEKDAY_LABELS = {
   5: 'Friday',
   6: 'Saturday',
 };
-export const WEEKDAY_SHORT = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
+export const WEEKDAY_SHORT = {
+  0: 'Sun',
+  1: 'Mon',
+  2: 'Tue',
+  3: 'Wed',
+  4: 'Thu',
+  5: 'Fri',
+  6: 'Sat',
+};
 
 // A fresh all-rest schedule.
 export function emptySchedule() {
@@ -44,6 +52,14 @@ export function normalizeSchedule(schedule) {
 
 export function isRest(type) {
   return !type || type === REST;
+}
+
+// True when two schedules have the same 7 slots (position matters). Used by the
+// sync layer to detect un-synced local edits (desired vs the synced baseline).
+export function schedulesEqual(a, b) {
+  const sa = normalizeSchedule(a);
+  const sb = normalizeSchedule(b);
+  return sa.every((v, i) => v === sb[i]);
 }
 
 // Parse 'YYYY-MM-DD' to a local Date (midnight). Avoids UTC parsing drift.
@@ -76,7 +92,9 @@ export function scheduledType(schedule, dateStr) {
 // A session counts as done only if it has at least one exercise — an empty
 // auto-created "today" workout does NOT count as completing a scheduled day.
 export function trainedTypeOn(history, dateStr) {
-  const w = (history ?? []).find((x) => x.date === dateStr && (x.exercises?.length ?? 0) > 0);
+  const w = (history ?? []).find(
+    (x) => x.date === dateStr && (x.exercises?.length ?? 0) > 0,
+  );
   return w ? (w.type ?? null) : null;
 }
 
@@ -93,7 +111,13 @@ export function resolveToday(schedule, history, date = localToday()) {
 
   // Rest days stay rest — catch-up only happens on training days.
   if (isRest(scheduled)) {
-    return { type: REST, scheduled: REST, due: false, adjusted: false, reason: 'Rest day' };
+    return {
+      type: REST,
+      scheduled: REST,
+      due: false,
+      adjusted: false,
+      reason: 'Rest day',
+    };
   }
 
   // Build this week's planned training queue (Mon → today inclusive), in order.

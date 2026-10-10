@@ -4,6 +4,7 @@ import {
   emptySchedule,
   normalizeSchedule,
   resolveToday,
+  schedulesEqual,
   scheduledType,
   trainedTypeOn,
   weekStart,
@@ -22,7 +23,11 @@ const sched = [
   REST, // 6 Sat
 ];
 
-const done = (date, type) => ({ date, type, exercises: [{ exerciseId: 'x', name: 'X' }] });
+const done = (date, type) => ({
+  date,
+  type,
+  exercises: [{ exerciseId: 'x', name: 'X' }],
+});
 
 describe('schedule basics', () => {
   it('normalizes to 7 rest slots', () => {
@@ -39,9 +44,31 @@ describe('schedule basics', () => {
     expect(scheduledType(sched, '2026-10-07')).toBe(REST); // Wed
   });
   it('trainedTypeOn ignores empty workouts', () => {
-    const hist = [done('2026-10-05', 'Push'), { date: '2026-10-06', type: 'Pull', exercises: [] }];
+    const hist = [
+      done('2026-10-05', 'Push'),
+      { date: '2026-10-06', type: 'Pull', exercises: [] },
+    ];
     expect(trainedTypeOn(hist, '2026-10-05')).toBe('Push');
     expect(trainedTypeOn(hist, '2026-10-06')).toBeNull(); // empty = not trained
+  });
+});
+
+describe('schedulesEqual — sync change detection', () => {
+  it('equal for identical 7-slot arrays', () => {
+    expect(schedulesEqual(sched, [...sched])).toBe(true);
+  });
+  it('unequal when any slot differs', () => {
+    const changed = [...sched];
+    changed[3] = 'Legs'; // Wed: Rest → Legs
+    expect(schedulesEqual(sched, changed)).toBe(false);
+  });
+  it('two empty schedules are equal', () => {
+    expect(schedulesEqual(emptySchedule(), emptySchedule())).toBe(true);
+  });
+  it('normalizes ragged/missing input before comparing', () => {
+    // A short array fills with REST; an all-REST schedule equals empty.
+    expect(schedulesEqual([REST], emptySchedule())).toBe(true);
+    expect(schedulesEqual(null, emptySchedule())).toBe(true);
   });
 });
 

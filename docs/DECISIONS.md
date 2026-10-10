@@ -159,3 +159,27 @@ each session type: which exercises, and per exercise a target sets × rep-range
   `diffPlanOps` (pure, tested), debounced flush + flush-on-reconnect, and the
   adopt-server-unless-local-pending reconcile rule. Offline plan edits now survive a
   reload and sync when back online, with an amber offline/syncing banner in the editor.
+
+## Weekly schedule moved to Supabase (synced, server-editable)
+
+The weekday→type schedule (Plan tab) was `localStorage`-only, per-device
+(`ScheduleProvider`). Charlie wanted it the same on every device and editable by
+Hermes. Moved it server-side: a new `user_schedule` table (migration 008) holding
+ONE row per user — a 7-slot JSON array indexed by JS `getDay()` (0=Sun..6=Sat),
+each slot a WORKOUT_TYPES value or 'Rest'. Owner-only RLS, same one-row-per-user
+pattern as `user_notes` (006).
+
+- **Sync model = the full durable outbox** (Charlie's call), identical to
+  plans/workouts: desired-state cache + a separate persisted SYNCED BASELINE,
+  `schedulesEqual` (pure, tested) to detect a pending edit, debounced flush +
+  flush-on-reconnect, and the adopt-server-unless-local-pending reconcile rule.
+  Overkill for a single row, but keeps zero data-loss risk and one mental model.
+- **Legacy migration:** `loadScheduleCache` falls back to the old global
+  `lift-tracker:v1:schedule` key, and the baseline starts empty, so an existing
+  local schedule counts as a pending edit and is pushed to the server (not lost).
+  Cache keys are now user-namespaced like the others.
+- **Server-editable:** `scripts/lift.py schedule show|set <day> <type>` reads/writes
+  the row via service-role REST (`lift schedule set Mon Push`). The app doesn't
+  live-sync, so a reload is needed to see a CLI change.
+- Degrades gracefully until the migration is run: sync just fails and the schedule
+  keeps working locally (amber "Syncing…" banner), then flushes once the table exists.

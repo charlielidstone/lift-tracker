@@ -137,11 +137,47 @@ export function loadPlansSynced(userId, storage) {
   return entry?.rows ?? null;
 }
 
-// ── Weekly schedule (read-only access for the workout provider) ──
-// The ScheduleProvider owns writes to this key; useWorkout reads it to pre-set
-// today's type on an untouched workout. Stored as a plain 7-slot array.
-export function loadScheduleCache(storage) {
-  return readJSON(storage, `${NS}:schedule`);
+// ── Weekly schedule (per-user, synced; offline-first) ──
+// The ScheduleProvider owns writes; useWorkout reads the cache to pre-set today's
+// type on an untouched workout. Namespaced by user (like the other caches) so two
+// accounts on one device don't collide. A desired-state cache PLUS a separate
+// synced baseline (last server-confirmed) so an offline reload still detects
+// un-synced local edits via schedulesEqual(desired, synced).
+export function scheduleKey(userId) {
+  return `${NS}:schedule:${userId || 'anon'}`;
+}
+
+export function saveScheduleCache(userId, schedule, storage) {
+  return writeJSON(storage, scheduleKey(userId), { schedule, cachedAt: Date.now() });
+}
+
+// Returns a 7-slot array or null. Falls back to the pre-sync LEGACY global key
+// (`lift-tracker:v1:schedule`, a raw array) so a device that set its schedule
+// before sync existed keeps it (the provider re-saves it namespaced + pushes it).
+export function loadScheduleCache(userId, storage) {
+  const entry = readJSON(storage, scheduleKey(userId));
+  if (entry?.schedule) return entry.schedule;
+  const legacy = readJSON(storage, `${NS}:schedule`);
+  return Array.isArray(legacy) ? legacy : null;
+}
+
+// Schedule synced baseline (outbox baseline — last SERVER-CONFIRMED array). Kept
+// separate from the desired-state cache so an offline reload still yields the
+// pending edit via schedulesEqual(desired, synced).
+export function scheduleSyncedKey(userId) {
+  return `${NS}:schedule-synced:${userId || 'anon'}`;
+}
+
+export function saveScheduleSynced(userId, schedule, storage) {
+  return writeJSON(storage, scheduleSyncedKey(userId), {
+    schedule,
+    cachedAt: Date.now(),
+  });
+}
+
+export function loadScheduleSynced(userId, storage) {
+  const entry = readJSON(storage, scheduleSyncedKey(userId));
+  return entry?.schedule ?? null;
 }
 
 // ── Notes scratchpad (per-user single text blob, synced) ─────

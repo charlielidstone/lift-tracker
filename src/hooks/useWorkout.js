@@ -110,7 +110,7 @@ export function useWorkout() {
     let hydrateType = cachedWorkout?.type ?? null;
     if (cachedUntouched) {
       const { type: suggested } = resolveToday(
-        loadScheduleCache(),
+        loadScheduleCache(userId),
         historyRef.current ?? [],
         today,
       );
@@ -157,7 +157,7 @@ export function useWorkout() {
           effectiveType = cachedWorkout.type ?? null; // keep un-synced local choice
         } else if (untouchedServer && cachedUntouched) {
           const { type: suggested } = resolveToday(
-            loadScheduleCache(),
+            loadScheduleCache(userId),
             loadHistoryCache(userId) ?? [],
             today,
           );

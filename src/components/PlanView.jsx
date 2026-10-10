@@ -10,7 +10,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { loadHistoryCache } from '@/lib/localCache';
 import { fetchWorkoutHistory } from '@/lib/workoutRepo';
 import { WORKOUT_TYPES, localToday } from '@/lib/defaults';
-import { REST, WEEKDAY_LABELS, WEEKDAY_ORDER, resolveToday, scheduledType } from '@/lib/schedule';
+import {
+  REST,
+  WEEKDAY_LABELS,
+  WEEKDAY_ORDER,
+  resolveToday,
+  scheduledType,
+} from '@/lib/schedule';
 import { useSchedule } from '@/hooks/ScheduleProvider';
 import { PlanEditor } from '@/components/PlanEditor';
 
@@ -26,7 +32,7 @@ function dateForDow(dow) {
 }
 
 export function PlanView() {
-  const { schedule, setDay } = useSchedule();
+  const { schedule, setDay, online, pendingSync } = useSchedule();
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [history, setHistory] = useState([]);
@@ -80,9 +86,17 @@ export function PlanView() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Set each weekday. Starting a workout pre-sets today&apos;s type; miss one and the week
-        shifts to catch you up without training the same type twice in a row.
+        Set each weekday. Starting a workout pre-sets today&apos;s type; miss one and the
+        week shifts to catch you up without training the same type twice in a row.
       </p>
+
+      {(!online || pendingSync) && (
+        <p className="text-xs text-amber-600 dark:text-amber-500">
+          {!online
+            ? 'Offline — schedule saved on this device, will sync to your other devices later.'
+            : 'Syncing schedule…'}
+        </p>
+      )}
 
       <ul className="flex flex-col gap-2">
         {WEEKDAY_ORDER.map((dow) => {
