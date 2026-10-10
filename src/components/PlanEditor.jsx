@@ -68,28 +68,43 @@ function PlanExerciseRow({ planId, exercise, onUpdate, onRemove, readOnly }) {
           onChange={(v) => onUpdate(planId, exercise.id, { targetSets: v })}
           readOnly={readOnly}
         />
-        <EditableStat
-          label="min reps"
-          value={exercise.repMin}
-          step={STEP.reps}
-          min={BOUNDS.reps.min}
-          max={exercise.repMax}
-          active={activeField === 'repMin'}
-          onActivate={() => toggleField('repMin')}
-          onChange={(v) => onUpdate(planId, exercise.id, { repMin: v })}
-          readOnly={readOnly}
-        />
-        <EditableStat
-          label="max reps"
-          value={exercise.repMax}
-          step={STEP.reps}
-          min={exercise.repMin}
-          max={BOUNDS.reps.max}
-          active={activeField === 'repMax'}
-          onActivate={() => toggleField('repMax')}
-          onChange={(v) => onUpdate(planId, exercise.id, { repMax: v })}
-          readOnly={readOnly}
-        />
+        {readOnly ? (
+          // Saved view: collapse the two rep steppers into one range chip
+          // (e.g. "12–15 reps", or just "12 reps" when min === max).
+          <div className="relative shrink-0">
+            <div className="flex items-center gap-1 bg-muted px-3 py-2 rounded-2xl">
+              <span className="text-foreground tabular-nums font-medium">
+                {exercise.repMin === exercise.repMax
+                  ? exercise.repMin
+                  : `${exercise.repMin}–${exercise.repMax}`}
+              </span>
+              <span className="text-muted-foreground text-sm">reps</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            <EditableStat
+              label="min reps"
+              value={exercise.repMin}
+              step={STEP.reps}
+              min={BOUNDS.reps.min}
+              max={exercise.repMax}
+              active={activeField === 'repMin'}
+              onActivate={() => toggleField('repMin')}
+              onChange={(v) => onUpdate(planId, exercise.id, { repMin: v })}
+            />
+            <EditableStat
+              label="max reps"
+              value={exercise.repMax}
+              step={STEP.reps}
+              min={exercise.repMin}
+              max={BOUNDS.reps.max}
+              active={activeField === 'repMax'}
+              onActivate={() => toggleField('repMax')}
+              onChange={(v) => onUpdate(planId, exercise.id, { repMax: v })}
+            />
+          </>
+        )}
         <EditableStat
           label="RPE"
           value={exercise.rpe ?? BOUNDS.rpe.max}
