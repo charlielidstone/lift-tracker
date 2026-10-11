@@ -68,11 +68,12 @@ function MainApp() {
     <WorkoutProvider>
       <ScheduleProvider>
         <PlansProvider>
-          {/* App shell: fills the webview (h-full, document height is locked in
-              index.css). ONLY <main> scrolls; the bottom nav stays put. Top inset
-              clears the status bar / Dynamic Island; the nav carries the bottom inset. */}
+          {/* App shell: full screen via 100dvh (NOT h-full/% — with viewport-fit=cover
+              a % height resolves to the safe-area box and floats the nav above the
+              home indicator). Document is locked in index.css so only <main> scrolls.
+              Top inset clears the status bar; the nav carries the bottom inset. */}
           <div
-            className="flex h-full flex-col"
+            className="flex h-[100dvh] flex-col"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
           >
             <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
