@@ -127,6 +127,20 @@
   html {
     @apply font-sans;
   }
+  /* App shell: chain the height so the shell fills the webview exactly, and lock
+     the document so the PAGE itself never scrolls or rubber-band-bounces (only
+     <main> scrolls). Using height:100% (not 100dvh) avoids iOS resolving the
+     shell taller than the usable area, which otherwise overflows and lets the
+     in-flow bottom nav scroll away. */
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
 }
 
 /* iOS Safari auto-zooms when focusing an input whose font is under 16px.

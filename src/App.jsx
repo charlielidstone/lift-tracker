@@ -68,10 +68,13 @@ function MainApp() {
     <WorkoutProvider>
       <ScheduleProvider>
         <PlansProvider>
-          {/* App shell: a fixed-height flex column. ONLY the <main> area scrolls, so
-              the bottom nav stays put and never scrolls with the page. The iOS
-              keyboard overlays the content instead of moving the nav. */}
-          <div className="flex h-[100dvh] flex-col">
+          {/* App shell: fills the webview (h-full, document height is locked in
+              index.css). ONLY <main> scrolls; the bottom nav stays put. Top inset
+              clears the status bar / Dynamic Island; the nav carries the bottom inset. */}
+          <div
+            className="flex h-full flex-col"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+          >
             <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div className="mx-auto max-w-md p-4">
                 <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
