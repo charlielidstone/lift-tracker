@@ -16,6 +16,7 @@ import { SettingsProvider } from '@/hooks/SettingsProvider';
 import { ScheduleProvider } from '@/hooks/ScheduleProvider';
 import { PlansProvider } from '@/hooks/PlansProvider';
 import { PWAUpdater } from '@/components/PWAUpdater';
+import { DebugViewport } from '@/components/DebugViewport';
 
 // Whether login is REQUIRED to use the app. Off by default so the app keeps working
 // while multi-user is being built; flip to 'true' in .env.local when ready to enforce.
@@ -75,9 +76,11 @@ function MainApp() {
               (body overflow:hidden), so only <main> scrolls. Top inset clears the
               status bar; the nav carries the bottom inset. */}
           <div
+            data-shell
             className="fixed inset-0 flex flex-col"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
           >
+            <DebugViewport />
             <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div className="mx-auto max-w-md p-4">
                 <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
