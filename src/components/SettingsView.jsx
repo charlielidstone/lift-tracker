@@ -10,6 +10,7 @@ import { DataExport } from '@/components/DataExport';
 import { NotificationsDemo } from '@/components/NotificationsDemo';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/SettingsProvider';
+import { APP_ICONS } from '@/lib/appIcon';
 import { UNITS, unitLabel } from '@/lib/units';
 
 function Section({ title, children }) {
@@ -50,7 +51,7 @@ function Segmented({ options, value, onChange, labelFor }) {
 
 export function SettingsView() {
   const { user, signOut } = useAuth();
-  const { unit, setUnit } = useSettings();
+  const { unit, setUnit, appIcon, setAppIcon } = useSettings();
   const [savedFlash, setSavedFlash] = useState(false);
 
   const changeUnit = (next) => {
@@ -61,6 +62,46 @@ export function SettingsView() {
 
   return (
     <div className="flex flex-col gap-5">
+      <Section title="App icon">
+        <div className="flex gap-3">
+          {APP_ICONS.map((icon) => {
+            const active = icon.id === appIcon;
+            return (
+              <button
+                key={icon.id}
+                type="button"
+                onClick={() => setAppIcon(icon.id)}
+                aria-pressed={active}
+                className={cn(
+                  'flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-colors',
+                  active ? 'border-accent bg-accent/10' : 'border-border hover:border-foreground/30',
+                )}
+              >
+                <span className="relative">
+                  <img
+                    src={icon.src}
+                    alt={`${icon.label} app icon`}
+                    width={56}
+                    height={56}
+                    className="size-14 rounded-[13px]"
+                  />
+                  {active && (
+                    <span className="absolute -right-1 -top-1 rounded-full bg-accent p-0.5 text-accent-foreground">
+                      <Check className="size-3" />
+                    </span>
+                  )}
+                </span>
+                <span className="text-xs text-muted-foreground">{icon.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <span className="text-xs text-muted-foreground">
+          Applies to the iPhone home-screen icon. Already added? Remove it and add it again from
+          Safari’s Share menu to pick up the new icon.
+        </span>
+      </Section>
+
       <Section title="Units">
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col">
