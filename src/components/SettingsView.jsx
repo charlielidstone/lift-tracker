@@ -7,6 +7,7 @@ import { Check } from 'lucide-react';
 import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import { DataExport } from '@/components/DataExport';
+import { NotificationsDemo } from '@/components/NotificationsDemo';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/SettingsProvider';
 import { UNITS, unitLabel } from '@/lib/units';
@@ -90,6 +91,10 @@ export function SettingsView() {
             Sign out
           </Button>
         )}
+      </Section>
+
+      <Section title="Notifications">
+        <NotificationsDemo />
       </Section>
 
       <Section title="Your data">
