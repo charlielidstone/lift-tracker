@@ -174,7 +174,7 @@ function SettingRow({ icon: Icon, label, subtitle, onClick }) {
       onClick={onClick}
       className="flex w-full items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-accent/5"
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
         <Icon className="size-4" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
