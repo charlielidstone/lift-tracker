@@ -68,12 +68,14 @@ function MainApp() {
     <WorkoutProvider>
       <ScheduleProvider>
         <PlansProvider>
-          {/* App shell: full screen via 100dvh (NOT h-full/% — with viewport-fit=cover
-              a % height resolves to the safe-area box and floats the nav above the
-              home indicator). Document is locked in index.css so only <main> scrolls.
-              Top inset clears the status bar; the nav carries the bottom inset. */}
+          {/* App shell: pin to the viewport with position:fixed inset-0 (NOT a height
+              unit). In iOS standalone, 100dvh/100vh/% all under-report the height and
+              leave the bottom nav floating above the home indicator; a fixed inset-0
+              element always covers the full screen (the ICB). Document can't scroll
+              (body overflow:hidden), so only <main> scrolls. Top inset clears the
+              status bar; the nav carries the bottom inset. */}
           <div
-            className="flex h-[100dvh] flex-col"
+            className="fixed inset-0 flex flex-col"
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
           >
             <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
