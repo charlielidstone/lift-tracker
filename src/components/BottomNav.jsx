@@ -17,7 +17,7 @@ export function BottomNav({ active, onChange }) {
   return (
     <nav
       className="shrink-0 border-t border-border bg-background"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}
     >
       <div className="mx-auto flex max-w-md items-stretch justify-around">
         {ITEMS.map(({ id, label, Icon }) => {
