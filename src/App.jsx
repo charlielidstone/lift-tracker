@@ -68,16 +68,22 @@ function MainApp() {
     <WorkoutProvider>
       <ScheduleProvider>
         <PlansProvider>
-          {/* pb-24 leaves room for the fixed bottom nav */}
-          <div className="mx-auto max-w-md p-4 pb-24">
-            <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
-            {screen === 'workout' && <WorkoutScreen />}
-            {screen === 'library' && <LibraryView />}
-            {screen === 'plan' && <PlanView />}
-            {screen === 'progress' && <ProgressView />}
-            {screen === 'settings' && <SettingsView />}
+          {/* App shell: a fixed-height flex column. ONLY the <main> area scrolls, so
+              the bottom nav stays put and never scrolls with the page. The iOS
+              keyboard overlays the content instead of moving the nav. */}
+          <div className="flex h-[100dvh] flex-col">
+            <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div className="mx-auto max-w-md p-4">
+                <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
+                {screen === 'workout' && <WorkoutScreen />}
+                {screen === 'library' && <LibraryView />}
+                {screen === 'plan' && <PlanView />}
+                {screen === 'progress' && <ProgressView />}
+                {screen === 'settings' && <SettingsView />}
+              </div>
+            </main>
+            <BottomNav active={screen} onChange={setScreen} />
           </div>
-          <BottomNav active={screen} onChange={setScreen} />
         </PlansProvider>
       </ScheduleProvider>
     </WorkoutProvider>

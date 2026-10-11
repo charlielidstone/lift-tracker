@@ -1,3 +1,3 @@
-#root {
-    padding: 20px;
-}
+/* App shell owns its own layout (see App.jsx). No #root padding here — it would
+   offset the 100dvh shell and reintroduce a page-level scroll that lets iOS
+   rubber-band-drag the bottom nav. */

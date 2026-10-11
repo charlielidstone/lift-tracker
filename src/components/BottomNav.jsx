@@ -1,5 +1,6 @@
-// BottomNav — floating bottom navigation for the top-level screens.
-// Fixed to the bottom, safe-area aware (iOS notch), with icon + label per item.
+// BottomNav — bottom navigation for the top-level screens. Lives as the last
+// child of the app shell (NOT position:fixed) so it stays put while only the
+// content area scrolls; safe-area aware (iOS home bar), icon + label per item.
 
 import { CalendarDays, Dumbbell, Library, LineChart, Settings } from 'lucide-react';
 import { cn } from 'cn';
@@ -15,7 +16,7 @@ const ITEMS = [
 export function BottomNav({ active, onChange }) {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur"
+      className="shrink-0 border-t border-border bg-background"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="mx-auto flex max-w-md items-stretch justify-around">
