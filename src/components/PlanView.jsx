@@ -108,7 +108,7 @@ export function PlanView() {
               key={dow}
               className={cn(
                 'rounded-lg border px-3 py-2.5',
-                isToday ? 'border-accent-foreground' : 'border-border',
+                isToday ? 'border-accent background-muted' : 'border-border',
               )}
             >
               <button
