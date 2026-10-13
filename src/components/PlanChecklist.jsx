@@ -10,10 +10,10 @@ import { Check, Plus, TrendingUp } from 'lucide-react';
 import { cn } from 'cn';
 import { planChecklist, planSummary, formatRepRange } from '@/lib/planProgress';
 
-export function PlanChecklist({ plan, exercises, inWorkoutIds = [], onAdd }) {
+export function PlanChecklist({ plan, exercises, history = [], inWorkoutIds = [], onAdd }) {
   if (!plan || plan.exercises.length === 0) return null;
 
-  const checklist = planChecklist(plan, exercises);
+  const checklist = planChecklist(plan, exercises, history);
   const summary = planSummary(checklist);
   const inWorkout = new Set(inWorkoutIds);
 
@@ -52,8 +52,15 @@ export function PlanChecklist({ plan, exercises, inWorkoutIds = [], onAdd }) {
               </span>
 
               <span className="flex shrink-0 items-center gap-2">
-                {c.addWeight && (
-                  <span className="flex items-center gap-0.5 text-xs font-medium text-amber-600">
+                {(c.addWeight || c.carryAddWeight) && (
+                  <span
+                    className="flex items-center gap-0.5 text-xs font-medium text-amber-600"
+                    title={
+                      c.carryAddWeight
+                        ? 'You beat this exercise last session — go heavier this time'
+                        : 'You beat the plan today — go heavier next time'
+                    }
+                  >
                     <TrendingUp className="size-3.5" /> add weight
                   </span>
                 )}

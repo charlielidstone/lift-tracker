@@ -57,6 +57,9 @@ export function useWorkout() {
     typeof navigator === 'undefined' ? true : navigator.onLine,
   );
   const [pendingSync, setPendingSync] = useState(false);
+  // Cached workout history, mirrored to state so the plan checklist's carried
+  // "add weight" hint re-renders when history hydrates (ref alone wouldn't).
+  const [history, setHistory] = useState([]);
 
   const workoutIdRef = useRef(null);
   const savedRef = useRef(new Map()); // setId → last-SERVER-CONFIRMED row
@@ -96,6 +99,7 @@ export function useWorkout() {
     const cachedWorkout = loadWorkoutCache(userId, today);
     const cachedSynced = loadSyncedSnapshot(userId, today);
     historyRef.current = loadHistoryCache(userId); // for smart default weights
+    setHistory(historyRef.current ?? []); // mirror to state for the carried hint
     if (cachedLib) setLibrary(cachedLib);
 
     // Is the cached (or absent) workout untouched? → eligible for schedule auto-set.
@@ -444,5 +448,8 @@ export function useWorkout() {
     updateExercise,
     removeExercise,
     toggle,
+    // Newest-first cached workout history → carried-forward "add weight" hint on
+    // the plan checklist (same cache that powers smart default weights).
+    history,
   };
 }

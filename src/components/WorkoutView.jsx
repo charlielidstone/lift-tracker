@@ -31,6 +31,7 @@ export function WorkoutView() {
     updateExercise,
     removeExercise,
     toggle,
+    history,
   } = useWorkoutContext();
   const { getPlan } = usePlans();
   const [finishing, setFinishing] = useState(false);
@@ -113,6 +114,7 @@ export function WorkoutView() {
         <PlanChecklist
           plan={plan}
           exercises={exercises}
+          history={history}
           inWorkoutIds={inWorkoutIds}
           onAdd={finished ? undefined : addExercise}
         />

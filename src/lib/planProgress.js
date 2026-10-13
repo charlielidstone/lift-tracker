@@ -19,17 +19,43 @@ export function setBeatsPlan(set, planExercise) {
   return hitTopReps && easyEnough;
 }
 
-// Progress for one planned exercise given the sets logged for it today.
+// Did a whole session (list of sets) beat the plan for this exercise?
+// True when it logged at least targetSets sets AND every one beat the plan.
+// Shared by the live (today) flag and the carried-forward hint.
+function sessionBeatsPlan(sets, planExercise) {
+  return (
+    sets.length >= planExercise.targetSets &&
+    sets.every((s) => setBeatsPlan(s, planExercise))
+  );
+}
+
+// Most recent PRIOR session (newest-first history) of `type` that logged this
+// exercise with sets — its set list, or [] if none. Feeds the carried nudge.
+// History shape: [{ type, exercises: [{ exerciseId, sets }] }, ...].
+export function lastSessionSetsFor(history, exerciseId, type) {
+  if (!exerciseId) return [];
+  for (const w of history ?? []) {
+    if (type && w.type !== type) continue;
+    const ex = (w.exercises ?? []).find((e) => e.exerciseId === exerciseId);
+    if (ex && (ex.sets ?? []).length) return ex.sets;
+  }
+  return [];
+}
+
+// Progress for one planned exercise given the sets logged for it today and the
+// sets from the most recent prior session of this type (priorSets).
 // Returns { exerciseId, name, targetSets, repMin, repMax, rpe, doneSets,
-//           remaining, met, addWeight }.
-//   met       — logged at least targetSets sets
-//   addWeight — met AND every logged set beat the plan (ready to go heavier)
-export function exerciseProgress(planExercise, loggedSets = []) {
+//           remaining, met, addWeight, carryAddWeight }.
+//   met            — logged at least targetSets sets today
+//   addWeight      — met AND every logged set beat the plan TODAY (just earned it)
+//   carryAddWeight — nothing logged today yet AND last session of this type beat
+//                    the plan (a reminder to go heavier). Clears the moment you
+//                    log any set for this exercise today.
+export function exerciseProgress(planExercise, loggedSets = [], priorSets = []) {
   const doneSets = loggedSets.length;
   const met = doneSets >= planExercise.targetSets;
-  const addWeight =
-    doneSets >= planExercise.targetSets &&
-    loggedSets.every((s) => setBeatsPlan(s, planExercise));
+  const addWeight = sessionBeatsPlan(loggedSets, planExercise);
+  const carryAddWeight = doneSets === 0 && sessionBeatsPlan(priorSets, planExercise);
   return {
     exerciseId: planExercise.exerciseId,
     name: planExercise.name,
@@ -41,16 +67,24 @@ export function exerciseProgress(planExercise, loggedSets = []) {
     remaining: Math.max(0, planExercise.targetSets - doneSets),
     met,
     addWeight,
+    carryAddWeight,
   };
 }
 
 // The full checklist for a plan given today's logged exercises (UI workout shape:
-// [{ exerciseId, sets: [{ reps, rpe, weight }] }]). Order follows the plan's
+// [{ exerciseId, sets: [{ reps, rpe, weight }] }]) and newest-first workout
+// history (for the carried-forward "add weight" hint). Order follows the plan's
 // editor order; unplanned logged exercises are ignored here (shown separately).
-export function planChecklist(plan, loggedExercises = []) {
+export function planChecklist(plan, loggedExercises = [], history = []) {
   if (!plan) return [];
   const byId = new Map(loggedExercises.map((e) => [e.exerciseId, e.sets ?? []]));
-  return plan.exercises.map((pe) => exerciseProgress(pe, byId.get(pe.exerciseId) ?? []));
+  return plan.exercises.map((pe) =>
+    exerciseProgress(
+      pe,
+      byId.get(pe.exerciseId) ?? [],
+      lastSessionSetsFor(history, pe.exerciseId, plan.type),
+    ),
+  );
 }
 
 // A compact "n/total done" summary for a whole plan — for a header badge.
