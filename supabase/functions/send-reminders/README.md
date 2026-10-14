@@ -48,8 +48,27 @@ phone — even with the app fully closed.
 ## Modes
 
 - `{ "userId": "…" }` → send now to that user's devices (test).
-- `{ }` → scheduled path: send to everyone `selectDueUsers()` returns. That
-  selection is a **stub returning `[]`** until **step 6** wires the schedule +
-  "already worked out today?" logic and adds the cron trigger.
+- `{}` → scheduled path (what the cron sends): send to everyone **due** —
+  today's scheduled type is a training type (not Rest) AND no set logged today —
+  but ONLY when the local hour equals `REMINDER_HOUR`. Dates/weekday/hour are
+  computed in `REMINDER_TZ` (America/Vancouver), so the fixed time is DST-proof.
+- `{ "force": true }` → bypass the hour gate (test the scheduled path any time).
+- `{ "dryRun": true }` → return who's due WITHOUT sending.
 
 Dead subscriptions (push service returns 404/410) are deleted automatically.
+
+## Cron (migration 010)
+
+`supabase/migrations/010_add_reminders_cron.sql` schedules an **hourly** ping via
+`pg_cron` + `pg_net`; the function's hour gate makes 23 of those a no-op. The
+service_role key is read from **Vault** at run time (never committed). Run the
+migration in the SQL Editor, and run the one-time `vault.create_secret(...)` with
+your real key (see the migration's step 2 — do NOT commit the key).
+
+Change the reminder time (local 24h hour, default 17 = 5pm):
+
+```bash
+npx supabase secrets set REMINDER_HOUR=8
+```
+
+Inspect cron runs: `select * from cron.job_run_details order by start_time desc;`
