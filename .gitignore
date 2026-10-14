@@ -40,3 +40,7 @@ __pycache__/
 
 # VAPID private key — never commit
 .vapid-keys.local.txt
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
