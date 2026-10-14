@@ -10,6 +10,13 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // injectManifest: we ship our OWN service worker (src/sw.js) because we need
+      // a custom `push` handler for real notifications. VitePWA just injects the
+      // precache manifest into it. (Was the default generateSW, which can't add a
+      // push handler — src/sw.js reproduces the old workbox behavior by hand.)
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       // Auto-update: a new deploy silently installs and takes over on next load.
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
@@ -33,27 +40,12 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
         // Precache the app shell (JS/CSS/HTML/icons) so a cold start works offline.
+        // This list is injected into src/sw.js at `self.__WB_MANIFEST`. The runtime
+        // behaviors (skipWaiting, clientsClaim, nav fallback, Supabase NetworkOnly)
+        // now live in src/sw.js itself — generateSW's `workbox` options don't apply.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        // A new SW takes over IMMEDIATELY instead of waiting for every tab to close
-        // (an installed PWA is never fully closed, so without these the old cached
-        // bundle keeps serving and deploys appear not to land).
-        skipWaiting: true,
-        clientsClaim: true,
-        // Drop stale precaches from previous deploys so we don't accumulate old assets.
-        cleanupOutdatedCaches: true,
-        // SPA fallback so any route serves index.html from cache when offline.
-        navigateFallback: '/index.html',
-        // NEVER cache Supabase API/auth calls — the app's own outbox handles
-        // offline writes; caching them would serve stale data or shadow errors.
-        navigateFallbackDenylist: [/^\/rest\//, /^\/auth\//],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.hostname.endsWith('.supabase.co'),
-            handler: 'NetworkOnly',
-          },
-        ],
       },
       devOptions: {
         // Service worker DISABLED in `vite dev`: the dev SW is flaky — it 404s on a

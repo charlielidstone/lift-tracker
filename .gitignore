@@ -37,3 +37,6 @@ backups/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# VAPID private key — never commit
+.vapid-keys.local.txt

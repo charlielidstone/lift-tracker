@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "oxc"],
-  "ignorePatterns": ["dist", "dev-dist"],
+  "ignorePatterns": ["dist", "dev-dist", "supabase/functions"],
   "env": {
     "browser": true,
     "node": true,
@@ -11,5 +11,11 @@
     "no-undef": "error",
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/sw.js"],
+      "env": { "serviceworker": true, "browser": true, "es2024": true }
+    }
+  ]
 }
