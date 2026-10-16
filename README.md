@@ -4,8 +4,6 @@ A fast, mobile-first weightlifting logger that works **offline**. Open it betwee
 tap to log weight × reps × RPE, and it syncs to the cloud when you're back online. Built as a
 PWA you can install to your home screen like a native app.
 
-Live: **[lift.charlielidstone.ca](https://lift.charlielidstone.ca)**
-
 - **Stack:** Vite + React 19 + Tailwind v4 + shadcn/ui, Supabase (Postgres + Auth) backend,
   deployed on AWS Amplify (auto-deploy on push to `main`).
 - **Offline-first:** edits land in React state → localStorage → Supabase (or a durable outbox
