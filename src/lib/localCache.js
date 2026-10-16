@@ -72,6 +72,23 @@ export function loadLibraryCache(userId, storage) {
   return entry?.library ?? null;
 }
 
+// ── Exercise favourites (per-user set of exercise ids) ───────
+// Low-stakes UI state, so a plain desired-state cache (no synced baseline). Stored
+// as an array; the hook rebuilds a Set. Returns null on a miss so the hook can tell
+// "never loaded" (→ show all) from "loaded empty" (→ a real empty favourites list).
+export function favoritesKey(userId) {
+  return `${NS}:favorites:${userId || 'anon'}`;
+}
+
+export function saveFavoritesCache(userId, ids, storage) {
+  return writeJSON(storage, favoritesKey(userId), { ids, cachedAt: Date.now() });
+}
+
+export function loadFavoritesCache(userId, storage) {
+  const entry = readJSON(storage, favoritesKey(userId));
+  return entry?.ids ?? null;
+}
+
 // ── Synced snapshot (outbox baseline) ────────────────────────
 // The set-rows the SERVER last confirmed. Kept separate from the desired-state
 // workout cache so that, after an offline reload, diff(desired, synced) still

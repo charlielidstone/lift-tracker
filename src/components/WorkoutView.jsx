@@ -19,6 +19,7 @@ export function WorkoutView() {
     exercises,
     expandedId,
     library,
+    favorites,
     loading,
     error,
     online,
@@ -139,11 +140,13 @@ export function WorkoutView() {
             type={type}
             inWorkoutIds={inWorkoutIds}
             onPick={addExercise}
+            favorites={favorites}
           />
           <ExercisePicker
             library={library}
             inWorkoutIds={inWorkoutIds}
             onPick={addExercise}
+            favorites={favorites}
           />
           {!hasExercises && (
             <p className="text-sm text-muted-foreground">

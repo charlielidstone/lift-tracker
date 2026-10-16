@@ -9,8 +9,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { loadHistoryCache, saveHistoryCache } from '@/lib/localCache';
 import { fetchWorkoutHistory } from '@/lib/workoutRepo';
 import { recommendExercises } from '@/lib/recommend';
+import { filterRecsToFavorites } from '@/lib/exerciseSort';
 
-export function RecommendedExercises({ type, inWorkoutIds, onPick }) {
+export function RecommendedExercises({ type, inWorkoutIds, onPick, favorites = null }) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const [history, setHistory] = useState([]);
@@ -37,7 +38,10 @@ export function RecommendedExercises({ type, inWorkoutIds, onPick }) {
     };
   }, [userId]);
 
-  const recs = recommendExercises(history, { type, excludeIds: inWorkoutIds, limit: 6 });
+  const recs = filterRecsToFavorites(
+    recommendExercises(history, { type, excludeIds: inWorkoutIds, limit: 6 }),
+    favorites,
+  );
   if (recs.length === 0) return null;
 
   return (

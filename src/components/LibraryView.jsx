@@ -1,16 +1,19 @@
-// LibraryView — the Library tab: browse all exercises and create a new one
-// (name + optional muscle group). Browse/manage only — adding an exercise to a
-// workout happens on the Today screen (recommended chips / searchable picker).
+// LibraryView — the Library tab: browse every exercise, favourite the ones you use,
+// and create new ones. Favourites drive what shows in the Today screen's suggested
+// list (and appear first when you search), so this tab is where you curate them.
+// Adding an exercise to a workout still happens on the Today screen.
 
 import { useMemo, useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Star } from 'lucide-react';
+import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { libraryExercises } from '@/lib/exerciseSort';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
 
 export function LibraryView() {
-  const { library, createExercise, loading } = useWorkoutContext();
+  const { library, favorites, toggleFavorite, createExercise, loading } = useWorkoutContext();
   const [query, setQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
@@ -18,11 +21,10 @@ export function LibraryView() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const list = q ? library.filter((e) => e.name.toLowerCase().includes(q)) : library;
-    return [...list].sort((a, b) => a.name.localeCompare(b.name));
-  }, [library, query]);
+  const results = useMemo(
+    () => libraryExercises(library, query, favorites),
+    [library, query, favorites],
+  );
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -48,6 +50,11 @@ export function LibraryView() {
 
   return (
     <div className="flex flex-col gap-3">
+      <p className="text-xs text-muted-foreground">
+        Tap the star to favourite. Favourites show up when you add exercises on the
+        Today screen (and appear first when you search).
+      </p>
+
       {/* Search */}
       <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
         <Search className="size-4 shrink-0 text-muted-foreground" />
@@ -107,24 +114,43 @@ export function LibraryView() {
         </Button>
       )}
 
-      {/* List (browse only — add to a workout from the Today screen) */}
+      {/* List — tap the star to favourite. Adding to a workout is on the Today screen. */}
       <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
         {results.length === 0 && (
           <li className="px-3 py-3 text-sm text-muted-foreground">
             {query ? 'No matches.' : 'No exercises yet — create one above.'}
           </li>
         )}
-        {results.map((e) => (
-          <li key={e.id} className="flex items-center gap-3 px-3 py-2.5">
-            <ExerciseThumb name={e.name} size="sm" />
-            <span className="flex min-w-0 flex-col">
-              <span className="truncate text-sm text-foreground">{e.name}</span>
-              {e.muscle_group && (
-                <span className="text-xs text-muted-foreground">{e.muscle_group}</span>
+        {results.map((e) => {
+          const fav = favorites?.has(e.id);
+          return (
+            <li key={e.id} className="flex items-center gap-3 px-3 py-2.5">
+              <ExerciseThumb name={e.name} size="sm" />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-sm text-foreground">{e.name}</span>
+                {e.muscle_group && (
+                  <span className="text-xs text-muted-foreground">{e.muscle_group}</span>
+                )}
+              </span>
+              {favorites !== null && (
+                <button
+                  type="button"
+                  onClick={() => toggleFavorite(e.id)}
+                  aria-label={fav ? `Unfavourite ${e.name}` : `Favourite ${e.name}`}
+                  aria-pressed={fav}
+                  className="shrink-0 rounded-full p-1.5 hover:bg-muted"
+                >
+                  <Star
+                    className={cn(
+                      'size-5',
+                      fav ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground',
+                    )}
+                  />
+                </button>
               )}
-            </span>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

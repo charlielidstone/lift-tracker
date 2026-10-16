@@ -127,7 +127,7 @@ function PlanExerciseRow({ planId, exercise, onUpdate, onRemove, readOnly }) {
 
 function PlanTypeCard({ type }) {
   const { getPlan, addExerciseToPlan, updatePlanExercise, removePlanExercise } = usePlans();
-  const { library } = useWorkoutContext();
+  const { library, favorites } = useWorkoutContext();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -201,6 +201,7 @@ function PlanTypeCard({ type }) {
             <ExercisePicker
               library={library}
               inWorkoutIds={inPlanIds}
+              favorites={favorites}
               onPick={(libEx) => addExerciseToPlan(type, libEx)}
             />
           )}

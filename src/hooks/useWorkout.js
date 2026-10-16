@@ -16,15 +16,18 @@ import { isRest, resolveToday } from '@/lib/schedule';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import {
+  loadFavoritesCache,
   loadHistoryCache,
   loadLibraryCache,
   loadScheduleCache,
   loadSyncedSnapshot,
   loadWorkoutCache,
+  saveFavoritesCache,
   saveLibraryCache,
   saveSyncedSnapshot,
   saveWorkoutCache,
 } from '@/lib/localCache';
+import { addFavorite, fetchFavorites, removeFavorite } from '@/lib/exerciseFavoritesRepo';
 import { diffOps, hasPendingOps, isFinishedWorkoutWipe, mapToRows, rowsToMap, snapshotSets } from '@/lib/syncDiff';
 import {
   deleteExerciseSets,
@@ -49,6 +52,9 @@ export function useWorkout() {
   const [exercises, setExercises] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [library, setLibrary] = useState([]);
+  // Favourited exercise ids, or null until first load / when the feature is
+  // unavailable (pre-migration / offline) — null means "show the whole library".
+  const [favorites, setFavorites] = useState(null);
   const [type, setWorkoutTypeState] = useState(null);
   const [finished, setFinishedState] = useState(false);
   const [loading, setLoading] = useState(isSupabaseConfigured);
@@ -221,6 +227,32 @@ export function useWorkout() {
     };
   }, [userId, today, commitSynced]);
 
+  // ── Favourites: cache-first, then server (isolated from the workout load so a
+  //    missing table pre-migration degrades to "no favourites filter" safely) ──
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let cancelled = false;
+    /* eslint-disable react/set-state-in-effect */
+    const cached = loadFavoritesCache(userId);
+    if (cached) setFavorites(new Set(cached));
+    /* eslint-enable react/set-state-in-effect */
+    (async () => {
+      try {
+        const ids = await fetchFavorites();
+        if (cancelled) return;
+        setFavorites(new Set(ids));
+        saveFavoritesCache(userId, ids);
+      } catch (e) {
+        // Table missing (pre-migration) or offline — keep whatever we have (cache
+        // or null). null leaves the UI showing the whole library.
+        console.error('[useWorkout] favourites load failed (degrading to all)', e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   // ── Flush pending ops to the server (used by debounce + reconnect) ──
   // Reads exercises from a ref so a single stable callback can be triggered by
   // the reconnect listener without stale closures.
@@ -364,9 +396,45 @@ export function useWorkout() {
           : [...prev, row].sort((a, b) => a.name.localeCompare(b.name)),
       );
       saveLibraryCache(userId, [...library.filter((e) => e.id !== row.id), row]);
+      // A freshly created exercise is one the user explicitly wants to use → favourite
+      // it so it shows in suggestions right away (built-in library adds are NOT
+      // auto-favourited; a user-created one is a deliberate choice).
+      setFavorites((prev) => {
+        if (prev?.has(row.id)) return prev;
+        const next = new Set(prev ?? []);
+        next.add(row.id);
+        saveFavoritesCache(userId, [...next]);
+        return next;
+      });
+      addFavorite(row.id).catch((e) => console.error('[useWorkout] auto-favorite failed', e));
       return row;
     },
     [library, userId],
+  );
+
+  // Toggle an exercise's favourite status. Optimistic + write-through cache; the
+  // server write is fire-and-forget and reverts the local state on failure. Low-stakes
+  // (a star, not workout data), so no durable outbox.
+  const toggleFavorite = useCallback(
+    (exerciseId) => {
+      const willFav = !favorites?.has(exerciseId);
+      const next = new Set(favorites ?? []);
+      if (willFav) next.add(exerciseId);
+      else next.delete(exerciseId);
+      setFavorites(next);
+      saveFavoritesCache(userId, [...next]);
+      (willFav ? addFavorite(exerciseId) : removeFavorite(exerciseId)).catch((e) => {
+        console.error('[useWorkout] toggleFavorite failed (reverting)', e);
+        setFavorites((cur) => {
+          const rb = new Set(cur ?? []);
+          if (willFav) rb.delete(exerciseId);
+          else rb.add(exerciseId);
+          saveFavoritesCache(userId, [...rb]);
+          return rb;
+        });
+      });
+    },
+    [favorites, userId],
   );
 
   const updateExercise = useCallback((id, next) => {
@@ -435,6 +503,8 @@ export function useWorkout() {
     exercises,
     expandedId,
     library,
+    favorites,
+    toggleFavorite,
     loading,
     error,
     online,
