@@ -3,7 +3,7 @@
 // list (and appear first when you search), so this tab is where you curate them.
 // Adding an exercise to a workout still happens on the Today screen.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Search, Star } from 'lucide-react';
 import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
@@ -21,9 +21,25 @@ export function LibraryView() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
+  // The star fills/empties instantly (uses real `favorites`), but the row's SECTION
+  // (favourites-first) is ordered by a lagged copy so a just-toggled row stays put
+  // for a beat instead of jumping. Settles ~2s after the last toggle.
+  const [sortFavs, setSortFavs] = useState(favorites);
+  useEffect(() => {
+    if (favorites === sortFavs) return undefined;
+    // Initial load / feature (un)availability flips immediately — only user toggles lag.
+    if (sortFavs === null || favorites === null) {
+      /* eslint-disable-next-line react/set-state-in-effect */
+      setSortFavs(favorites);
+      return undefined;
+    }
+    const t = setTimeout(() => setSortFavs(favorites), 2000);
+    return () => clearTimeout(t);
+  }, [favorites, sortFavs]);
+
   const results = useMemo(
-    () => libraryExercises(library, query, favorites),
-    [library, query, favorites],
+    () => libraryExercises(library, query, sortFavs),
+    [library, query, sortFavs],
   );
 
   const handleCreate = async (e) => {
