@@ -136,6 +136,7 @@ function PlanTypeCard({ type }) {
   const plan = getPlan(type);
   const exercises = plan?.exercises ?? [];
   const inPlanIds = exercises.map((e) => e.exerciseId);
+  const totalSets = exercises.reduce((n, e) => n + (Number(e.targetSets) || 0), 0);
 
   // Collapsing the card always drops back to view mode.
   const toggleOpen = () => {
@@ -155,7 +156,7 @@ function PlanTypeCard({ type }) {
           <span className="text-xs text-muted-foreground">
             {exercises.length === 0
               ? 'no exercises'
-              : `${exercises.length} exercise${exercises.length === 1 ? '' : 's'}`}
+              : `${exercises.length} exercise${exercises.length === 1 ? '' : 's'} · ${totalSets} set${totalSets === 1 ? '' : 's'}`}
           </span>
           <ChevronDown
             className={cn('size-4 text-muted-foreground transition-transform', open && 'rotate-180')}
