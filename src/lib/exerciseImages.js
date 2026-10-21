@@ -29,7 +29,7 @@ const NAME_TO_SLUG = {
   'leg extension': 'leg-extension',
   'leg press': 'leg-press',
   'lying leg curl': 'lying-leg-curl',
-  'machine back fly': 'rear-delt-fly',
+  'machine back fly': 'reverse-pec-deck',
   'machine shoulder press': 'machine-shoulder-press',
   'overhead tricep extension': 'overhead-tricep-extension',
   'pec deck': 'pec-deck',

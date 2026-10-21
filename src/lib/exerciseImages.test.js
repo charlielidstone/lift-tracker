@@ -13,7 +13,7 @@ describe('exerciseImages', () => {
     expect(resolveSlug('Preacher Curl')).toBe('preacher-curl');
     // custom name that fuzzy-matching got wrong — curated map fixes it
     expect(resolveSlug('Single arm cable lat raise')).toBe('cable-lateral-raise');
-    expect(resolveSlug('Machine back fly')).toBe('rear-delt-fly');
+    expect(resolveSlug('Machine back fly')).toBe('reverse-pec-deck');
   });
 
   it('is tolerant of label edits (case/spacing)', () => {
