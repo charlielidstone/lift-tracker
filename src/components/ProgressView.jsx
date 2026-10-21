@@ -16,6 +16,7 @@ import { overviewStats } from '@/lib/overview';
 import { weeklyStats } from '@/lib/weeklyStats';
 import { toDisplayWeight, unitLabel } from '@/lib/units';
 import { Button } from '@/components/ui/button';
+import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { OverviewStats } from '@/components/OverviewStats';
 
 // Recharts is heavy (~270KB gzip) — lazy-load it so it only downloads when a
@@ -155,19 +156,24 @@ export function ProgressView() {
           <p className="text-xs font-medium text-muted-foreground">
             By exercise — tap to see it over time.
           </p>
-          {exercises.map((e) => (
-            <button
-              key={e.exerciseId}
-              type="button"
-              onClick={() => setSelected(e.exerciseId)}
-              className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5 text-left hover:bg-muted"
-            >
-              <span className="text-sm text-foreground">{e.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {e.sessions} session{e.sessions === 1 ? '' : 's'}
-              </span>
-            </button>
-          ))}
+          <div className="grid grid-cols-3 gap-2">
+            {exercises.map((e) => (
+              <button
+                key={e.exerciseId}
+                type="button"
+                onClick={() => setSelected(e.exerciseId)}
+                className="flex aspect-square flex-col items-center justify-center gap-1.5 rounded-lg border border-border p-2 text-center hover:bg-muted"
+              >
+                <ExerciseThumb name={e.name} size="lg" />
+                <span className="line-clamp-2 text-xs font-medium leading-tight text-foreground">
+                  {e.name}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  {e.sessions} session{e.sessions === 1 ? '' : 's'}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     );
