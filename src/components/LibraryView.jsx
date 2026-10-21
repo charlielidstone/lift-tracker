@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { MuscleTag } from '@/components/MuscleTag';
+import { DotLoader } from '@/components/DotLoader';
 import { libraryExercises } from '@/lib/exerciseSort';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
 
@@ -62,7 +63,7 @@ export function LibraryView() {
   };
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading library…</p>;
+    return <DotLoader label="Loading library…" />;
   }
 
   return (

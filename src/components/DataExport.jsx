@@ -16,6 +16,7 @@ import {
   workoutsToText,
 } from '@/lib/exportWorkouts';
 import { Button } from '@/components/ui/button';
+import { DotLoader } from '@/components/DotLoader';
 import { Input } from '@/components/ui/input';
 
 function triggerDownload(filename, text, mime) {
@@ -117,7 +118,7 @@ export function DataExport() {
       </div>
 
       {loading ? (
-        <p className="text-xs text-muted-foreground">Loading your history…</p>
+        <DotLoader label="Loading your history…" size={24} />
       ) : error ? (
         <p className="text-xs text-destructive">Couldn't load history — try again when online.</p>
       ) : (

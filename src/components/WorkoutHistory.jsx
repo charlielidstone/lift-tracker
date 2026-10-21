@@ -13,6 +13,7 @@ import { ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExerciseCard } from '@/components/ExerciseCard';
+import { DotLoader } from '@/components/DotLoader';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
 import { loadHistoryCache, saveHistoryCache } from '@/lib/localCache';
@@ -269,7 +270,7 @@ export function WorkoutHistory() {
   }, [userId]);
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading workout history…</p>;
+    return <DotLoader label="Loading workout history…" />;
   }
 
   if (error) {

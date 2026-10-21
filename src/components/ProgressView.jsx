@@ -17,6 +17,7 @@ import { weeklyStats } from '@/lib/weeklyStats';
 import { toDisplayWeight, unitLabel } from '@/lib/units';
 import { Button } from '@/components/ui/button';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { DotLoader } from '@/components/DotLoader';
 import { OverviewStats } from '@/components/OverviewStats';
 
 // Recharts is heavy (~270KB gzip) — lazy-load it so it only downloads when a
@@ -104,7 +105,7 @@ export function ProgressView() {
   const yUnit = metric === 'volume' ? `${unitLabel(unit)}·reps` : unitLabel(unit);
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading your history…</p>;
+    return <DotLoader label="Loading your history…" />;
   }
 
   if (!isSupabaseConfigured) {
@@ -145,7 +146,7 @@ export function ProgressView() {
               </div>
             </div>
             <Suspense
-              fallback={<p className="text-xs text-muted-foreground">Loading chart…</p>}
+              fallback={<DotLoader label="Loading chart…" size={24} />}
             >
               <WeeklyChart points={weeklyBars} formatY={formatWeeklyY} tooltipLabel={weeklyTooltip} />
             </Suspense>
@@ -228,7 +229,7 @@ export function ProgressView() {
             </p>
           )}
           <Suspense
-            fallback={<p className="text-xs text-muted-foreground">Loading chart…</p>}
+            fallback={<DotLoader label="Loading chart…" size={24} />}
           >
             <LineChart points={points} formatY={(v) => String(Math.round(v))} />
           </Suspense>

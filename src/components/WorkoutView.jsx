@@ -12,6 +12,7 @@ import { SyncStatusBadge } from '@/components/SyncStatusBadge';
 import { Button } from '@/components/ui/button';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
 import { usePlans } from '@/hooks/PlansProvider';
+import { DotLoader } from '@/components/DotLoader';
 import { WORKOUT_TYPES } from '@/lib/defaults';
 
 export function WorkoutView() {
@@ -46,7 +47,7 @@ export function WorkoutView() {
   );
 
   if (loading) {
-    return <p className="text-sm text-muted-foreground">Loading today's workout…</p>;
+    return <DotLoader label="Loading today's workout…" />;
   }
 
   const handleFinish = async () => {

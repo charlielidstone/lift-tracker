@@ -1,7 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "oxc"],
-  "ignorePatterns": ["dist", "dev-dist", "supabase/functions"],
+  "ignorePatterns": [
+    "dist",
+    "dev-dist",
+    "supabase/functions",
+    "src/components/ui/dotmatrix-core.tsx",
+    "src/components/ui/dotmatrix-hooks.ts",
+    "src/components/ui/dotm-*.tsx"
+  ],
   "env": {
     "browser": true,
     "node": true,
