@@ -27,7 +27,7 @@ describe('exerciseImages', () => {
   });
 
   it('returns null for unknown exercises', () => {
-    expect(resolveSlug('Nordic Hamstring Curl')).toBeNull();
+    expect(resolveSlug('Nonexistent Flapjack Raise')).toBeNull();
     expect(exerciseImageUrl('Totally Made Up Lift')).toBeNull();
   });
 
