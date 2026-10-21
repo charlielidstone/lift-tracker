@@ -23,7 +23,7 @@ export const BOUNDS = {
 
 // Fixed set of workout types (labels). Stored in workouts.type; the app
 // constrains input to this list. null/unset = unlabeled.
-export const WORKOUT_TYPES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full body', 'Arms'];
+export const WORKOUT_TYPES = ['Push', 'Pull', 'Legs', 'Upper', 'Lower', 'Full body'];
 
 // "Today" as a YYYY-MM-DD string in the user's LOCAL timezone.
 // NOT toISOString() — that's UTC, which rolls over to tomorrow in the evening
