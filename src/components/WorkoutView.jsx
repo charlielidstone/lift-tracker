@@ -3,7 +3,7 @@
 // State + persistence come from the shared WorkoutProvider (so the Library screen
 // adds to the same workout). A finished workout renders read-only (locked).
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExercisePicker } from '@/components/ExercisePicker';
 import { RecommendedExercises } from '@/components/RecommendedExercises';
@@ -37,6 +37,13 @@ export function WorkoutView() {
   const { getPlan } = usePlans();
   const [finishing, setFinishing] = useState(false);
   const [finishWarning, setFinishWarning] = useState(false);
+
+  // Resolve each exercise's muscle group from the library (the workout entry
+  // itself doesn't carry it) so the card can show a colour-coded tag.
+  const muscleByExId = useMemo(
+    () => new Map((library ?? []).map((e) => [e.id, e.muscle_group])),
+    [library],
+  );
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">Loading today's workout…</p>;
@@ -125,6 +132,7 @@ export function WorkoutView() {
         <ExerciseCard
           key={exercise.id}
           exercise={exercise}
+          muscleGroup={muscleByExId.get(exercise.exerciseId)}
           expanded={expandedId === exercise.id}
           onToggle={() => toggle(exercise.id)}
           onChange={(next) => updateExercise(exercise.id, next)}

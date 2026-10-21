@@ -19,6 +19,7 @@ import {
 } from '@/lib/schedule';
 import { useSchedule } from '@/hooks/ScheduleProvider';
 import { PlanEditor } from '@/components/PlanEditor';
+import { WeeklyMuscleSummary } from '@/components/WeeklyMuscleSummary';
 
 const OPTIONS = [...WORKOUT_TYPES, REST];
 
@@ -163,6 +164,9 @@ export function PlanView() {
           );
         })}
       </ul>
+
+      {/* Weekly volume — target sets per muscle group from schedule × session plans. */}
+      <WeeklyMuscleSummary />
 
       {/* Session plans — the CONTENT of each type (exercises + target sets×reps). */}
       <div className="mt-2 border-t border-border pt-4">

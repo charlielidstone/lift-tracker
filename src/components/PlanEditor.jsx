@@ -16,6 +16,7 @@ import { cn } from 'cn';
 import { EditableStat } from '@/components/EditableStat';
 import { ExercisePicker } from '@/components/ExercisePicker';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { MuscleTag } from '@/components/MuscleTag';
 import { Button } from '@/components/ui/button';
 import { usePlans } from '@/hooks/PlansProvider';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
@@ -48,6 +49,7 @@ function PlanExerciseRow({ planId, exercise, onUpdate, onRemove, readOnly }) {
         <div className="flex min-w-0 items-center gap-2">
           <ExerciseThumb name={exercise.name} size="sm" />
           <span className="truncate text-sm font-medium text-foreground">{exercise.name}</span>
+          {exercise.muscleGroup && <MuscleTag group={exercise.muscleGroup} />}
         </div>
         {!readOnly && (
           <button

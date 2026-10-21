@@ -9,6 +9,7 @@ import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { MuscleTag } from '@/components/MuscleTag';
 import { libraryExercises } from '@/lib/exerciseSort';
 import { useWorkoutContext } from '@/hooks/WorkoutProvider';
 
@@ -142,11 +143,9 @@ export function LibraryView() {
           return (
             <li key={e.id} className="flex items-center gap-3 px-3 py-2.5">
               <ExerciseThumb name={e.name} size="sm" />
-              <span className="flex min-w-0 flex-1 flex-col">
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate text-sm text-foreground">{e.name}</span>
-                {e.muscle_group && (
-                  <span className="text-xs text-muted-foreground">{e.muscle_group}</span>
-                )}
+                {e.muscle_group && <MuscleTag group={e.muscle_group} className="self-start" />}
               </span>
               {favorites !== null && (
                 <button

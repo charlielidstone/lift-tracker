@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Plus, Search, Star, X } from 'lucide-react';
 import { cn } from 'cn';
 import { Button } from '@/components/ui/button';
+import { MuscleTag } from '@/components/MuscleTag';
 import { pickerExercises } from '@/lib/exerciseSort';
 
 // `favorites` is a Set of favourited exercise ids, or null/undefined when the
@@ -95,11 +96,9 @@ export function ExercisePicker({ library, onPick, inWorkoutIds = [], favorites =
                   {fav && (
                     <Star className="size-3.5 shrink-0 fill-amber-400 text-amber-400" />
                   )}
-                  <span className="flex min-w-0 flex-col">
+                  <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="truncate text-foreground">{e.name}</span>
-                    {e.muscle_group && (
-                      <span className="text-xs text-muted-foreground">{e.muscle_group}</span>
-                    )}
+                    {e.muscle_group && <MuscleTag group={e.muscle_group} className="self-start" />}
                   </span>
                 </span>
                 {added ? (

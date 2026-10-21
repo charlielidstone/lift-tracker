@@ -26,6 +26,7 @@
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 import { SetRow } from '@/components/SetRow';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { MuscleTag } from '@/components/MuscleTag';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +42,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DEFAULT_SET } from '@/lib/defaults';
 
-export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove, readOnly }) {
+export function ExerciseCard({
+  exercise,
+  muscleGroup,
+  expanded,
+  onToggle,
+  onChange,
+  onRemove,
+  readOnly,
+}) {
   const { name, sets } = exercise;
 
   // Patch one set (by index) with a partial update, e.g. { weight: 105 }.
@@ -85,6 +94,7 @@ export function ExerciseCard({ exercise, expanded, onToggle, onChange, onRemove,
         )}
         <ExerciseThumb name={name} size="sm" />
         <CardTitle className="min-w-0 flex-1">{name}</CardTitle>
+        {muscleGroup && <MuscleTag group={muscleGroup} className="shrink-0" />}
         <span className="shrink-0 whitespace-nowrap text-sm text-muted-foreground">
           {sets.length} {sets.length === 1 ? 'set' : 'sets'}
         </span>
