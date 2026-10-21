@@ -28,7 +28,16 @@ import {
   saveWorkoutCache,
 } from '@/lib/localCache';
 import { addFavorite, fetchFavorites, removeFavorite } from '@/lib/exerciseFavoritesRepo';
-import { diffOps, hasPendingOps, isFinishedWorkoutWipe, mapToRows, rowsToMap, snapshotSets } from '@/lib/syncDiff';
+import {
+  diffOps,
+  hasPendingOps,
+  isFinishedWorkoutWipe,
+  isSignedOutMidSession,
+  mapToRows,
+  rowsToMap,
+  snapshotSets,
+  wouldDropLocalSets,
+} from '@/lib/syncDiff';
 import {
   deleteExerciseSets,
   deleteSet,
@@ -48,6 +57,12 @@ export function useWorkout() {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const today = localToday();
+  // Auth-flap guard: when login is REQUIRED but there's no user, the session
+  // dropped mid-use (e.g. a failed token refresh during a network blip). In that
+  // state an unauthenticated server fetch/write would wipe un-synced local sets,
+  // so we treat it like offline — keep the cache + outbox until auth returns.
+  const REQUIRE_AUTH = import.meta.env.VITE_REQUIRE_AUTH === 'true';
+  const signedOutMidSession = isSignedOutMidSession({ authRequired: REQUIRE_AUTH, userId });
 
   const [exercises, setExercises] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
@@ -75,12 +90,16 @@ export function useWorkout() {
   const exercisesRef = useRef(exercises); // latest exercises for reconnect flush
   const historyRef = useRef(null); // cached workout history → smart default weights
   const finishedRef = useRef(finished); // latest finished flag for the flush guard
+  const signedOutRef = useRef(signedOutMidSession); // latest auth-flap flag for flush
   useEffect(() => {
     exercisesRef.current = exercises;
   }, [exercises]);
   useEffect(() => {
     finishedRef.current = finished;
   }, [finished]);
+  useEffect(() => {
+    signedOutRef.current = signedOutMidSession;
+  }, [signedOutMidSession]);
 
   // Persist savedRef both in memory and to localStorage so the outbox baseline
   // survives an offline reload (else local edits look already-saved and get lost).
@@ -147,6 +166,13 @@ export function useWorkout() {
 
     // 2. Reconcile with the server (authoritative when online).
     (async () => {
+      // Auth-flap guard: if the session dropped mid-use, DON'T hit the server — an
+      // unauthenticated fetch returns an empty/forbidden copy that would overwrite
+      // un-synced local sets. Keep the cached view and reconcile when auth returns.
+      if (signedOutMidSession) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
       try {
         const [lib, workout] = await Promise.all([fetchExercises(), getOrCreateTodayWorkout()]);
         if (cancelled) return;
@@ -208,7 +234,21 @@ export function useWorkout() {
             '[useWorkout] recovered a finished-workout wipe from cache — adopting server copy',
           );
         }
-        if (!localEdits || finishedWipe) {
+        // Auth-flap guard: if the server copy has FEWER sets than the un-synced local
+        // workout, a dropped/partial session is about to wipe sets the user just
+        // logged. Refuse to adopt — keep local; the debounced flush re-pushes them.
+        const serverDropsLocalSets = wouldDropLocalSets({
+          serverSetCount: serverSnap.size,
+          desiredSetCount: cachedDesired.size,
+        });
+        if (serverDropsLocalSets) {
+          console.error(
+            '[useWorkout] BLOCKED an auth-flap wipe: server has fewer sets ' +
+              `(${serverSnap.size}) than un-synced local (${cachedDesired.size}) — ` +
+              'keeping local, will re-push.',
+          );
+        }
+        if ((!localEdits || finishedWipe) && !serverDropsLocalSets) {
           setExercises(workout.exercises);
         }
         commitSynced(serverSnap);
@@ -225,7 +265,7 @@ export function useWorkout() {
     return () => {
       cancelled = true;
     };
-  }, [userId, today, commitSynced]);
+  }, [userId, today, commitSynced, signedOutMidSession]);
 
   // ── Favourites: cache-first, then server (isolated from the workout load so a
   //    missing table pre-migration degrades to "no favourites filter" safely) ──
@@ -258,6 +298,14 @@ export function useWorkout() {
   // the reconnect listener without stale closures.
   const flush = useCallback(async () => {
     if (!isSupabaseConfigured || !workoutIdRef.current) return;
+    // Auth-flap guard: never write while signed out mid-session. An unauthenticated
+    // write fails (or lands partially) and could let the baseline advance past what
+    // the server actually has. Keep the outbox; the reconnect/next-edit retry drains
+    // it once auth returns.
+    if (signedOutRef.current) {
+      setPendingSync(hasPendingOps(snapshotSets(exercisesRef.current), savedRef.current));
+      return { ok: false, pending: true, reason: 'signed-out' };
+    }
     const workoutId = workoutIdRef.current;
     const desired = snapshotSets(exercisesRef.current);
     const saved = savedRef.current;

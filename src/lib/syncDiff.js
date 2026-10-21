@@ -97,3 +97,27 @@ export function hasPendingOps(desired, saved) {
 export function isFinishedWorkoutWipe({ finished, desiredSetCount, referenceSetCount }) {
   return Boolean(finished) && desiredSetCount === 0 && referenceSetCount > 0;
 }
+
+// Data-loss guard (fourth-incident fix: AUTH FLAP). When a background token refresh
+// fails (a DNS/network blip), the Supabase session drops and an UNauthenticated
+// server fetch returns an empty/partial copy of the workout. Adopting that copy
+// would wipe real, un-synced local sets — the "sets vanished on refresh" report.
+//
+// True when auth is REQUIRED but there is currently no user (the session dropped
+// mid-session). In this state useWorkout must NOT push to, or adopt from, the
+// server — treat it like being offline and keep the cache + outbox until auth
+// returns. In anonymous mode (authRequired=false) userId is always null but writes
+// SHOULD happen, so the guard stays false there.
+export function isSignedOutMidSession({ authRequired, userId }) {
+  return Boolean(authRequired) && !userId;
+}
+
+// Data-loss guard (fourth-incident fix). True when adopting the server copy would
+// REDUCE a non-empty local workout to fewer sets — i.e. an empty/partial server
+// fetch (typically from a dropped session) is about to overwrite local sets the
+// user just logged. The reconcile refuses to adopt in this case and lets the flush
+// re-push the local sets instead. (A same-count out-of-band edit — the legit CLI
+// case — has serverSetCount === desiredSetCount, so the guard does not fire.)
+export function wouldDropLocalSets({ serverSetCount, desiredSetCount }) {
+  return desiredSetCount > 0 && serverSetCount < desiredSetCount;
+}
