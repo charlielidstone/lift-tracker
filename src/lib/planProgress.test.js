@@ -198,6 +198,51 @@ describe('planChecklist', () => {
     expect(cl[0].carryAddWeight).toBe(true); // x1 beat the plan last Push session
     expect(cl[1].carryAddWeight).toBe(false); // x2 never logged
   });
+
+  // Option A: an equivalent movement satisfies a plan slot when a name lookup is
+  // supplied. The slot "Machine chest press" (x1) and "Bench Press" (x9) are in
+  // the same flat-press substitution group.
+  const nameById = new Map([
+    ['x1', 'Machine chest press'],
+    ['x2', 'Lateral raise'],
+    ['x9', 'Bench Press'],
+    ['x8', 'Dumbbell lateral raise'],
+  ]);
+
+  it('credits an equivalent exercise toward a plan slot when nameById is given', () => {
+    const logged = [{ exerciseId: 'x9', sets: [{ reps: 6, rpe: 9 }, { reps: 6, rpe: 9 }] }];
+    const cl = planChecklist(plan, logged, [], nameById);
+    expect(cl[0].doneSets).toBe(2); // Bench Press counts toward the flat-press slot
+  });
+
+  it('does NOT credit equivalents without nameById (exact-id, unchanged behaviour)', () => {
+    const logged = [{ exerciseId: 'x9', sets: [{ reps: 6, rpe: 9 }, { reps: 6, rpe: 9 }] }];
+    const cl = planChecklist(plan, logged, []);
+    expect(cl[0].doneSets).toBe(0);
+  });
+
+  it('sums the slot exercise AND its substitutes without double-counting', () => {
+    const logged = [
+      { exerciseId: 'x1', sets: [{ reps: 6, rpe: 9 }] }, // the slot itself
+      { exerciseId: 'x9', sets: [{ reps: 6, rpe: 9 }, { reps: 6, rpe: 9 }] }, // substitute
+    ];
+    const cl = planChecklist(plan, logged, [], nameById);
+    expect(cl[0].doneSets).toBe(3); // 1 + 2, own sets counted once
+  });
+
+  it('matches lateral-raise variants to the lateral raise slot', () => {
+    const logged = [{ exerciseId: 'x8', sets: [{ reps: 12, rpe: 8 }, { reps: 12, rpe: 8 }, { reps: 12, rpe: 8 }] }];
+    const cl = planChecklist(plan, logged, [], nameById);
+    expect(cl[1].doneSets).toBe(3); // Dumbbell lateral raise → Lateral raise slot
+    expect(cl[1].met).toBe(true);
+  });
+
+  it('does not let a non-equivalent exercise satisfy a slot', () => {
+    const fly = new Map([['x7', 'Pec deck']]);
+    const logged = [{ exerciseId: 'x7', sets: [{ reps: 10, rpe: 8 }] }];
+    const cl = planChecklist(plan, logged, [], fly);
+    expect(cl[0].doneSets).toBe(0); // a fly is NOT a flat press
+  });
 });
 
 describe('planSummary', () => {

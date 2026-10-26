@@ -46,6 +46,13 @@ export function WorkoutView() {
     [library],
   );
 
+  // id → name, so the plan checklist can credit equivalent movements (a barbell
+  // bench counting toward a "Flat dumbbell press" slot — see substitutions.js).
+  const nameByExId = useMemo(
+    () => new Map((library ?? []).map((e) => [e.id, e.name])),
+    [library],
+  );
+
   if (loading) {
     return <DotLoader label="Loading today's workout…" />;
   }
@@ -124,6 +131,7 @@ export function WorkoutView() {
           plan={plan}
           exercises={exercises}
           history={history}
+          nameById={nameByExId}
           inWorkoutIds={inWorkoutIds}
           onAdd={finished ? undefined : addExercise}
         />

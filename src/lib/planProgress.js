@@ -5,6 +5,8 @@
 // sets are done, whether the target is met, and whether you BEAT the plan (hit the
 // top of the rep-range at an RPE easy enough to add weight next time).
 
+import { substitutesFor, normalizeExerciseName } from '@/lib/substitutions';
+
 // Default RPE ceiling used when a plan exercise has no explicit target RPE: a set
 // at/above the top rep count feeling this easy or easier means "add weight".
 const DEFAULT_RPE_CEILING = 8;
@@ -71,17 +73,50 @@ export function exerciseProgress(planExercise, loggedSets = [], priorSets = []) 
   };
 }
 
+// Sets that count toward one plan slot: the sets logged under the slot's exact
+// exercise id, PLUS (when a name lookup is available) sets logged under any
+// EQUIVALENT exercise (substitutions.js groups) — e.g. a barbell bench counts
+// toward a "Flat dumbbell press" slot. Own-id sets are always counted even if
+// the name can't be resolved; substitute sets are added by normalized name, and
+// the slot's own name bucket is skipped so its sets are never double-counted.
+function setsForPlanExercise(planExercise, byId, byName) {
+  const own = byId.get(planExercise.exerciseId) ?? [];
+  if (!byName) return own;
+  const group = substitutesFor(planExercise.name);
+  const ownKey = normalizeExerciseName(planExercise.name);
+  const extra = [];
+  for (const [key, sets] of byName) {
+    if (key === ownKey) continue; // the slot's own sets are already in `own`
+    if (group.has(key)) extra.push(...sets);
+  }
+  return [...own, ...extra];
+}
+
 // The full checklist for a plan given today's logged exercises (UI workout shape:
 // [{ exerciseId, sets: [{ reps, rpe, weight }] }]) and newest-first workout
 // history (for the carried-forward "add weight" hint). Order follows the plan's
 // editor order; unplanned logged exercises are ignored here (shown separately).
-export function planChecklist(plan, loggedExercises = [], history = []) {
+//
+// `nameById` (exerciseId → exercise name, from the library) is OPTIONAL: pass it
+// to let equivalent movements satisfy a plan slot (option A). Omit it and
+// matching is exact-id only, exactly as before.
+export function planChecklist(plan, loggedExercises = [], history = [], nameById = null) {
   if (!plan) return [];
   const byId = new Map(loggedExercises.map((e) => [e.exerciseId, e.sets ?? []]));
+  // Group logged sets by normalized exercise name so substitutes can be matched.
+  const byName = nameById
+    ? loggedExercises.reduce((m, e) => {
+        const name = nameById.get(e.exerciseId);
+        if (!name) return m;
+        const key = normalizeExerciseName(name);
+        m.set(key, [...(m.get(key) ?? []), ...(e.sets ?? [])]);
+        return m;
+      }, new Map())
+    : null;
   return plan.exercises.map((pe) =>
     exerciseProgress(
       pe,
-      byId.get(pe.exerciseId) ?? [],
+      setsForPlanExercise(pe, byId, byName),
       lastSessionSetsFor(history, pe.exerciseId, plan.type),
     ),
   );

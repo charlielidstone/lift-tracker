@@ -10,10 +10,10 @@ import { Check, Plus, TrendingUp } from 'lucide-react';
 import { cn } from 'cn';
 import { planChecklist, planSummary, formatRepRange } from '@/lib/planProgress';
 
-export function PlanChecklist({ plan, exercises, history = [], inWorkoutIds = [], onAdd }) {
+export function PlanChecklist({ plan, exercises, history = [], nameById = null, inWorkoutIds = [], onAdd }) {
   if (!plan || plan.exercises.length === 0) return null;
 
-  const checklist = planChecklist(plan, exercises, history);
+  const checklist = planChecklist(plan, exercises, history, nameById);
   const summary = planSummary(checklist);
   const inWorkout = new Set(inWorkoutIds);
 
