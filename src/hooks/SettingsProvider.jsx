@@ -31,6 +31,18 @@ export function SettingsProvider({ children }) {
     return APP_ICON_IDS.includes(saved) ? saved : DEFAULT_APP_ICON;
   });
 
+  // Body profile for strength-standard benchmarking (Progress tab). Weight is
+  // canonical lb like everywhere else; the unit toggle handles display. Empty
+  // until the user fills it in Settings → the Progress benchmark prompts for it.
+  const [profile, setProfileState] = useState(() => {
+    const saved = load().profile;
+    return {
+      bodyweightLb: Number.isFinite(saved?.bodyweightLb) ? saved.bodyweightLb : null,
+      age: Number.isFinite(saved?.age) ? saved.age : null,
+      sex: saved?.sex === 'female' ? 'female' : saved?.sex === 'male' ? 'male' : null,
+    };
+  });
+
   // Persist on change.
   useEffect(() => {
     try {
@@ -51,6 +63,15 @@ export function SettingsProvider({ children }) {
     applyAppIcon(appIcon);
   }, [appIcon]);
 
+  // Persist profile on change.
+  useEffect(() => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ ...load(), profile }));
+    } catch {
+      // ignore storage failures
+    }
+  }, [profile]);
+
   const setUnit = useCallback((next) => {
     if (UNITS.includes(next)) setUnitState(next);
   }, []);
@@ -59,8 +80,30 @@ export function SettingsProvider({ children }) {
     if (APP_ICON_IDS.includes(next)) setAppIconState(next);
   }, []);
 
+  // Merge a partial profile update ({bodyweightLb?, age?, sex?}); null clears a
+  // field. Numbers are coerced, non-finite → null, sex constrained to m/f/null.
+  const setProfile = useCallback((patch) => {
+    setProfileState((prev) => {
+      const next = { ...prev };
+      if ('bodyweightLb' in patch) {
+        const n = Number(patch.bodyweightLb);
+        next.bodyweightLb = Number.isFinite(n) && n > 0 ? n : null;
+      }
+      if ('age' in patch) {
+        const n = Number(patch.age);
+        next.age = Number.isFinite(n) && n > 0 ? n : null;
+      }
+      if ('sex' in patch) {
+        next.sex = patch.sex === 'female' ? 'female' : patch.sex === 'male' ? 'male' : null;
+      }
+      return next;
+    });
+  }, []);
+
   return (
-    <SettingsContext.Provider value={{ unit, setUnit, appIcon, setAppIcon }}>
+    <SettingsContext.Provider
+      value={{ unit, setUnit, appIcon, setAppIcon, profile, setProfile }}
+    >
       {children}
     </SettingsContext.Provider>
   );

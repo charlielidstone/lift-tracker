@@ -11,6 +11,7 @@ import {
   Database,
   Image as ImageIcon,
   Info,
+  Ruler,
   Scale,
   User,
 } from 'lucide-react';
@@ -21,7 +22,7 @@ import { NotificationsDemo } from '@/components/NotificationsDemo';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/SettingsProvider';
 import { APP_ICONS, appIconById } from '@/lib/appIcon';
-import { UNITS, unitLabel } from '@/lib/units';
+import { UNITS, unitLabel, toDisplayWeight, fromDisplayWeight } from '@/lib/units';
 
 // A small segmented control (two+ options, one selected).
 function Segmented({ options, value, onChange, labelFor }) {
@@ -127,6 +128,73 @@ function UnitsSetting() {
   );
 }
 
+function ProfileSetting() {
+  const { unit, profile, setProfile } = useSettings();
+
+  // Bodyweight input holds the DISPLAY-unit string; we store canonical lb.
+  const bwDisplay =
+    profile.bodyweightLb != null ? String(toDisplayWeight(profile.bodyweightLb, unit)) : '';
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-xs text-muted-foreground">
+        Used on the Progress tab to benchmark your lifts against population strength standards.
+        Stored on this device only.
+      </p>
+
+      <label className="flex items-center justify-between gap-3">
+        <span className="text-sm text-foreground">Bodyweight</span>
+        <span className="inline-flex items-center gap-1.5">
+          <input
+            type="number"
+            inputMode="decimal"
+            min="0"
+            value={bwDisplay}
+            onChange={(e) => {
+              const v = e.target.value;
+              setProfile({ bodyweightLb: v === '' ? null : fromDisplayWeight(Number(v), unit) });
+            }}
+            className="w-24 rounded-lg border border-border bg-background px-3 py-1.5 text-right text-sm"
+            placeholder="—"
+          />
+          <span className="w-6 text-xs text-muted-foreground">{unitLabel(unit)}</span>
+        </span>
+      </label>
+
+      <label className="flex items-center justify-between gap-3">
+        <span className="text-sm text-foreground">Age</span>
+        <span className="inline-flex items-center gap-1.5">
+          <input
+            type="number"
+            inputMode="numeric"
+            min="0"
+            value={profile.age ?? ''}
+            onChange={(e) =>
+              setProfile({ age: e.target.value === '' ? null : Number(e.target.value) })
+            }
+            className="w-24 rounded-lg border border-border bg-background px-3 py-1.5 text-right text-sm"
+            placeholder="—"
+          />
+          <span className="w-6 text-xs text-muted-foreground">yr</span>
+        </span>
+      </label>
+
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-foreground">Sex</span>
+        <Segmented
+          options={['male', 'female']}
+          value={profile.sex}
+          onChange={(s) => setProfile({ sex: s })}
+          labelFor={(s) => (s === 'male' ? 'Male' : 'Female')}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Standards are bodyweight-relative and differ by sex and age — this keeps the benchmark fair.
+      </p>
+    </div>
+  );
+}
+
 function AccountSetting() {
   const { user, signOut } = useAuth();
   return (
@@ -188,8 +256,13 @@ function SettingRow({ icon: Icon, label, subtitle, onClick }) {
 
 export function SettingsView() {
   const { user } = useAuth();
-  const { unit, appIcon } = useSettings();
+  const { unit, appIcon, profile } = useSettings();
   const [active, setActive] = useState(null);
+
+  const profileSummary =
+    profile.bodyweightLb != null && profile.sex
+      ? `${toDisplayWeight(profile.bodyweightLb, unit)} ${unitLabel(unit)}${profile.age ? `, ${profile.age} yr` : ''}, ${profile.sex === 'female' ? 'female' : 'male'}`
+      : 'Set up for strength standards';
 
   // Section defs: list metadata + the detail page to render. Subtitles summarise
   // the current value so the list reads at a glance.
@@ -207,6 +280,13 @@ export function SettingsView() {
       subtitle: `Weight in ${unitLabel(unit)}`,
       icon: Scale,
       render: () => <UnitsSetting />,
+    },
+    {
+      id: 'profile',
+      label: 'Body profile',
+      subtitle: profileSummary,
+      icon: Ruler,
+      render: () => <ProfileSetting />,
     },
     {
       id: 'account',

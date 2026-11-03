@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { DotLoader } from '@/components/DotLoader';
 import { OverviewStats } from '@/components/OverviewStats';
+import { StrengthStandards } from '@/components/StrengthStandards';
 
 // Recharts is heavy (~270KB gzip) — lazy-load it so it only downloads when a
 // Progress chart is actually shown, keeping the initial PWA bundle lean.
@@ -124,6 +125,8 @@ export function ProgressView() {
     return (
       <div className="flex flex-col gap-4">
         <OverviewStats stats={overview} unit={unit} />
+
+        <StrengthStandards history={history} />
 
         {/* Weekly trend — Strava-style bars, last 12 weeks */}
         {weeklyHasData && (
