@@ -36,7 +36,7 @@ describe('substitutesFor', () => {
   });
 
   it('does not group a fly with a press', () => {
-    expect(substitutesFor('Pec deck').has('bench press')).toBe(false);
+    expect(substitutesFor('Chest fly').has('bench press')).toBe(false);
   });
 
   it('returns just the exercise itself when it is in no group', () => {
@@ -51,7 +51,7 @@ describe('substitutesFor', () => {
   });
 
   it('groups flat chest flyes but not with a press', () => {
-    const group = substitutesFor('Pec deck');
+    const group = substitutesFor('Chest fly');
     expect(group.has('dumbbell fly')).toBe(true);
     expect(group.has('cable fly')).toBe(true);
     expect(group.has('bench press')).toBe(false);

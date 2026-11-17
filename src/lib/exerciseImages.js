@@ -216,6 +216,7 @@ const NAME_TO_SLUG = {
   'overhead press': 'overhead-press',
   'overhead tricep extension': 'overhead-tricep-extension',
   'pallof press': 'pallof-press',
+  'chest fly': 'pec-deck',
   'pec deck': 'pec-deck',
   'pendlay row': 'pendlay-row',
   'pike push up': 'pike-push-up',

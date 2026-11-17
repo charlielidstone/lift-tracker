@@ -77,8 +77,8 @@ export const SUBSTITUTION_GROUPS = [
   ['Overhead tricep extension', 'Dumbbell Overhead Tricep Extension'],
   // Single-arm row — machine / cable / dumbbell (unilateral horizontal pull).
   ['Single arm machine row', 'Single-Arm Cable Row', 'One Arm Dumbbell Row'],
-  // Flat chest fly — pec deck / dumbbell / cable (fly pattern, NOT a press).
-  ['Pec deck', 'Dumbbell Fly', 'Cable Fly'],
+  // Flat chest fly — machine / dumbbell / cable (fly pattern, NOT a press).
+  ['Chest fly', 'Dumbbell Fly', 'Cable Fly'],
 ];
 
 // Lowercase, trim, collapse internal whitespace. Keeps matching robust to casing
