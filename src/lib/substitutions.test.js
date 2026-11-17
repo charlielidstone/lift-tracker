@@ -40,8 +40,21 @@ describe('substitutesFor', () => {
   });
 
   it('returns just the exercise itself when it is in no group', () => {
-    const solo = substitutesFor('Pec deck');
-    expect([...solo]).toEqual(['pec deck']);
+    const solo = substitutesFor('Preacher Curl');
+    expect([...solo]).toEqual(['preacher curl']);
+  });
+
+  it('groups single-arm rows (machine / cable / dumbbell)', () => {
+    const group = substitutesFor('Single arm machine row');
+    expect(group.has('single-arm cable row')).toBe(true);
+    expect(group.has('one arm dumbbell row')).toBe(true);
+  });
+
+  it('groups flat chest flyes but not with a press', () => {
+    const group = substitutesFor('Pec deck');
+    expect(group.has('dumbbell fly')).toBe(true);
+    expect(group.has('cable fly')).toBe(true);
+    expect(group.has('bench press')).toBe(false);
   });
 
   it('always includes the queried exercise in its own group', () => {
