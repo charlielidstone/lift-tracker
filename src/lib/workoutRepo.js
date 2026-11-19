@@ -135,7 +135,7 @@ export async function fetchWorkoutExercises(workoutId) {
 
 // Load recent workouts (newest first), each with its sets grouped into exercise
 // entries (same UI shape as fetchWorkoutExercises). Read-only history view.
-export async function fetchWorkoutHistory(limit = 30) {
+export async function fetchWorkoutHistory(limit = 200) {
   if (!isSupabaseConfigured) return [];
   const { data: workouts, error } = await supabase
     .from('workouts')
