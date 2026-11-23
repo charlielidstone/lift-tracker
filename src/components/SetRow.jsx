@@ -18,10 +18,11 @@
 //   - lay it out as a single tidy row for phone width
 
 import { useEffect, useRef, useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, TrendingUp } from 'lucide-react';
 import { EditableStat } from '@/components/EditableStat';
 import { Button } from '@/components/ui/button';
 import { STEP, BOUNDS } from '@/lib/defaults';
+import { weightStepsToAdd } from '@/lib/planProgress';
 import { useSettings } from '@/hooks/SettingsProvider';
 import {
   fromDisplayWeight,
@@ -31,10 +32,13 @@ import {
   weightStep,
 } from '@/lib/units';
 
-export function SetRow({ set, onChange, onDelete, index, readOnly }) {
+export function SetRow({ set, onChange, onDelete, index, planExercise, readOnly }) {
   const { unit } = useSettings();
   // Weight is stored in lb; show + step it in the chosen unit, convert back on edit.
   const wBounds = weightBounds(BOUNDS.weight, unit);
+  // Did this set come in under the plan's target RPE? If so, nudge it heavier next
+  // time (purely RPE-driven — see planProgress.weightStepsToAdd). 0 = no nudge.
+  const addSteps = weightStepsToAdd(set, planExercise);
   // Which stat is expanded into a Stepper (only one at a time). null = all collapsed.
   const [activeField, setActiveField] = useState(null);
   const rowRef = useRef(null);
@@ -88,17 +92,27 @@ export function SetRow({ set, onChange, onDelete, index, readOnly }) {
         onChange={(v) => onChange({ rpe: v })}
         readOnly={readOnly}
       />
-      {!readOnly && (
-        <Button
-          type="button"
-          size="icon"
-          onClick={onDelete}
-          aria-label={`Delete set ${index}`}
-          className="shrink-0 bg-destructive text-white hover:bg-destructive/90 ml-auto"
-        >
-          <Trash2 className="size-4" />
-        </Button>
-      )}
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {addSteps > 0 && (
+          <span
+            className="flex items-center gap-0.5 whitespace-nowrap text-xs font-medium text-amber-600"
+            title={`Logged under your RPE ${planExercise?.rpe} target — add weight next time`}
+          >
+            <TrendingUp className="size-3.5" />+{addSteps * weightStep(unit)} {unitLabel(unit)}
+          </span>
+        )}
+        {!readOnly && (
+          <Button
+            type="button"
+            size="icon"
+            onClick={onDelete}
+            aria-label={`Delete set ${index}`}
+            className="shrink-0 bg-destructive text-white hover:bg-destructive/90"
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

@@ -21,6 +21,25 @@ export function setBeatsPlan(set, planExercise) {
   return hitTopReps && easyEnough;
 }
 
+// How many weight STEPS a single set should gain next time, from how far UNDER the
+// plan's target RPE it came in (RPE autoregulation): 1 RPE under target → 1 step,
+// 2+ under → 2 steps. At/above target, RPE unknown, or no target RPE → 0 (hold;
+// never nudge without evidence). This is purely RPE-driven — reps don't gate it.
+export function weightStepsToAdd(set, planExercise) {
+  if (!set || !planExercise || planExercise.rpe == null || set.rpe == null) return 0;
+  const under = planExercise.rpe - Number(set.rpe);
+  if (!(under > 0)) return 0;
+  return under >= 2 ? 2 : 1;
+}
+
+// Suggested next weight (lb) for one set: its weight plus any earned steps × step.
+// Falls back to the raw weight when it isn't a finite number.
+export function suggestSetWeight(set, planExercise, step) {
+  const w = Number(set?.weight);
+  if (!Number.isFinite(w)) return set?.weight;
+  return w + weightStepsToAdd(set, planExercise) * step;
+}
+
 // Did a whole session (list of sets) beat the plan for this exercise?
 // True when it logged at least targetSets sets AND every one beat the plan.
 // Shared by the live (today) flag and the carried-forward hint.
@@ -58,6 +77,12 @@ export function exerciseProgress(planExercise, loggedSets = [], priorSets = []) 
   const met = doneSets >= planExercise.targetSets;
   const addWeight = sessionBeatsPlan(loggedSets, planExercise);
   const carryAddWeight = doneSets === 0 && sessionBeatsPlan(priorSets, planExercise);
+  // Per-set nudge: the 1-based indices of sets that should go heavier next time.
+  // Read from today's logged sets once anything is logged, else carry last session's.
+  const hintSets = doneSets > 0 ? loggedSets : priorSets;
+  const increaseSets = hintSets
+    .map((s, i) => (weightStepsToAdd(s, planExercise) > 0 ? i + 1 : null))
+    .filter((n) => n != null);
   return {
     exerciseId: planExercise.exerciseId,
     name: planExercise.name,
@@ -70,6 +95,9 @@ export function exerciseProgress(planExercise, loggedSets = [], priorSets = []) 
     met,
     addWeight,
     carryAddWeight,
+    increaseSets,
+    // Whether the nudge reflects last session (carried) vs today's logged sets.
+    increaseFromPrior: doneSets === 0,
   };
 }
 

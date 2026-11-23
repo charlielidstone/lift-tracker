@@ -3,7 +3,7 @@
 // State + persistence come from the shared WorkoutProvider (so the Library screen
 // adds to the same workout). A finished workout renders read-only (locked).
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ExerciseCard } from '@/components/ExerciseCard';
 import { ExercisePicker } from '@/components/ExercisePicker';
 import { RecommendedExercises } from '@/components/RecommendedExercises';
@@ -53,6 +53,26 @@ export function WorkoutView() {
     [library],
   );
 
+  const plan = type ? getPlan(type) : null;
+
+  // exerciseId → its plan slot (target sets/reps/RPE) for the current type, so we
+  // can seed a smarter opening weight on add and flag per-set "go heavier" hints.
+  const planExById = useMemo(() => {
+    const m = new Map();
+    for (const pe of plan?.exercises ?? []) m.set(pe.exerciseId, pe);
+    return m;
+  }, [plan]);
+
+  // Add wrapper: pass the plan slot (if any) so the opening weight gets bumped when
+  // last session's first set was under the plan's target RPE.
+  const handleAdd = useCallback(
+    (libEx) => {
+      const id = libEx.id ?? libEx.exerciseId;
+      addExercise(libEx, planExById.get(id) ?? null);
+    },
+    [addExercise, planExById],
+  );
+
   if (loading) {
     return <DotLoader label="Loading today's workout…" />;
   }
@@ -70,7 +90,6 @@ export function WorkoutView() {
 
   const hasExercises = exercises.length > 0;
   const inWorkoutIds = exercises.map((e) => e.exerciseId);
-  const plan = type ? getPlan(type) : null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -133,7 +152,7 @@ export function WorkoutView() {
           history={history}
           nameById={nameByExId}
           inWorkoutIds={inWorkoutIds}
-          onAdd={finished ? undefined : addExercise}
+          onAdd={finished ? undefined : handleAdd}
         />
       )}
 
@@ -142,6 +161,7 @@ export function WorkoutView() {
           key={exercise.id}
           exercise={exercise}
           muscleGroup={muscleByExId.get(exercise.exerciseId)}
+          planExercise={planExById.get(exercise.exerciseId) ?? null}
           expanded={expandedId === exercise.id}
           onToggle={() => toggle(exercise.id)}
           onChange={(next) => updateExercise(exercise.id, next)}
@@ -156,13 +176,13 @@ export function WorkoutView() {
           <RecommendedExercises
             type={type}
             inWorkoutIds={inWorkoutIds}
-            onPick={addExercise}
+            onPick={handleAdd}
             favorites={favorites}
           />
           <ExercisePicker
             library={library}
             inWorkoutIds={inWorkoutIds}
-            onPick={addExercise}
+            onPick={handleAdd}
             favorites={favorites}
           />
           {!hasExercises && (

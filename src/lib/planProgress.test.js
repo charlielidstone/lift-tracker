@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   setBeatsPlan,
+  weightStepsToAdd,
+  suggestSetWeight,
   exerciseProgress,
   planChecklist,
   planSummary,
@@ -40,6 +42,43 @@ describe('setBeatsPlan', () => {
   it('falls back to the default ceiling (8) when the plan has no target RPE', () => {
     expect(setBeatsPlan({ reps: 8, rpe: 8 }, pe({ rpe: null }))).toBe(true);
     expect(setBeatsPlan({ reps: 8, rpe: 9 }, pe({ rpe: null }))).toBe(false);
+  });
+});
+
+describe('weightStepsToAdd', () => {
+  const p9 = pe({ rpe: 9 });
+  it('adds one step when the set came in 1 RPE under target', () => {
+    expect(weightStepsToAdd({ reps: 6, rpe: 8 }, p9)).toBe(1);
+  });
+  it('adds two steps when 2+ RPE under target', () => {
+    expect(weightStepsToAdd({ reps: 6, rpe: 7 }, p9)).toBe(2);
+    expect(weightStepsToAdd({ reps: 6, rpe: 5 }, p9)).toBe(2);
+  });
+  it('holds (0) at or above target RPE', () => {
+    expect(weightStepsToAdd({ reps: 6, rpe: 9 }, p9)).toBe(0);
+    expect(weightStepsToAdd({ reps: 6, rpe: 10 }, p9)).toBe(0);
+  });
+  it('is RPE-only — reps never gate the bump', () => {
+    expect(weightStepsToAdd({ reps: 2, rpe: 8 }, p9)).toBe(1);
+  });
+  it('holds when RPE is missing or the plan has no target RPE', () => {
+    expect(weightStepsToAdd({ reps: 6, rpe: null }, p9)).toBe(0);
+    expect(weightStepsToAdd({ reps: 6, rpe: 8 }, pe({ rpe: null }))).toBe(0);
+  });
+});
+
+describe('suggestSetWeight', () => {
+  const p9 = pe({ rpe: 9 });
+  it('bumps weight by steps × step size', () => {
+    expect(suggestSetWeight({ weight: 135, reps: 6, rpe: 8 }, p9, 5)).toBe(140);
+    expect(suggestSetWeight({ weight: 135, reps: 6, rpe: 7 }, p9, 5)).toBe(145);
+  });
+  it('holds the weight when at/above target or no evidence', () => {
+    expect(suggestSetWeight({ weight: 135, reps: 6, rpe: 9 }, p9, 5)).toBe(135);
+    expect(suggestSetWeight({ weight: 135, reps: 6, rpe: null }, p9, 5)).toBe(135);
+  });
+  it('returns the raw weight when weight is not finite', () => {
+    expect(suggestSetWeight({ weight: undefined, rpe: 8 }, p9, 5)).toBe(undefined);
   });
 });
 
@@ -92,6 +131,29 @@ describe('exerciseProgress', () => {
     const p = exerciseProgress(pe(), [], prior);
     expect(p.carryAddWeight).toBe(true);
     expect(p.addWeight).toBe(false); // nothing logged today yet
+  });
+
+  it('flags per-set increases from today\'s logged sets (Charlie example: 9×3 plan, did 8/9/9)', () => {
+    const p = exerciseProgress(
+      pe({ rpe: 9 }),
+      [
+        { reps: 6, rpe: 8 },
+        { reps: 6, rpe: 9 },
+        { reps: 6, rpe: 9 },
+      ],
+    );
+    expect(p.increaseSets).toEqual([1]); // only the first set was under target
+    expect(p.increaseFromPrior).toBe(false);
+  });
+
+  it('carries per-set increases from the prior session when nothing is logged today', () => {
+    const prior = [
+      { reps: 6, rpe: 9 },
+      { reps: 6, rpe: 7 },
+    ];
+    const p = exerciseProgress(pe({ rpe: 9 }), [], prior);
+    expect(p.increaseSets).toEqual([2]);
+    expect(p.increaseFromPrior).toBe(true);
   });
 
   it('does not carry when the prior session did not beat the plan', () => {

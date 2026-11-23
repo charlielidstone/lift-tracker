@@ -10,8 +10,9 @@
 // stays optimistic and responsive.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_SET, localToday } from '@/lib/defaults';
-import { defaultWeightFor } from '@/lib/lastWeight';
+import { DEFAULT_SET, STEP, localToday } from '@/lib/defaults';
+import { defaultWeightFor, lastSetFor } from '@/lib/lastWeight';
+import { suggestSetWeight } from '@/lib/planProgress';
 import { isRest, resolveToday } from '@/lib/schedule';
 import { isSupabaseConfigured } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -405,7 +406,7 @@ export function useWorkout() {
   // ── Mutations (optimistic; persistence happens via the effect above) ──
   // Add a library exercise to today. If it's already in the workout, just expand
   // it instead of adding a duplicate card.
-  const addExercise = useCallback((libraryExercise) => {
+  const addExercise = useCallback((libraryExercise, planExercise = null) => {
     const exId = libraryExercise.id ?? libraryExercise.exerciseId;
     let targetId = null;
     setExercises((prev) => {
@@ -416,7 +417,13 @@ export function useWorkout() {
       }
       // Smart default: open with the weight from the most recent session that
       // included this exercise; fall back to DEFAULT_SET.weight if never logged.
-      const weight = defaultWeightFor(historyRef.current, exId, DEFAULT_SET.weight);
+      // When the exercise is in today's plan, nudge that opening weight up if last
+      // session's first set came in under the plan's target RPE (suggestSetWeight).
+      const last = lastSetFor(historyRef.current, exId);
+      const weight =
+        planExercise && last
+          ? suggestSetWeight(last, planExercise, STEP.weight)
+          : defaultWeightFor(historyRef.current, exId, DEFAULT_SET.weight);
       const entry = {
         id: crypto.randomUUID(),
         exerciseId: exId,

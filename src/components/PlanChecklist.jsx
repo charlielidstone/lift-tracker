@@ -52,16 +52,18 @@ export function PlanChecklist({ plan, exercises, history = [], nameById = null, 
               </span>
 
               <span className="flex shrink-0 items-center gap-2">
-                {(c.addWeight || c.carryAddWeight) && (
+                {c.increaseSets.length > 0 && (
                   <span
                     className="flex items-center gap-0.5 text-xs font-medium text-amber-600"
                     title={
-                      c.carryAddWeight
-                        ? 'You beat this exercise last session — go heavier this time'
-                        : 'You beat the plan today — go heavier next time'
+                      (c.increaseFromPrior
+                        ? `Last ${plan.type} session, ${c.increaseSets.length === 1 ? 'that set' : 'those sets'} came in under your RPE ${c.rpe} target`
+                        : `${c.increaseSets.length === 1 ? 'That set' : 'Those sets'} came in under your RPE ${c.rpe} target`) +
+                      ' — go heavier'
                     }
                   >
-                    <TrendingUp className="size-3.5" /> add weight
+                    <TrendingUp className="size-3.5" />{' '}
+                    {c.increaseSets.length === 1 ? 'set' : 'sets'} {c.increaseSets.join(', ')}
                   </span>
                 )}
                 {c.met ? (

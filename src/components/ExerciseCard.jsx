@@ -45,6 +45,7 @@ import { DEFAULT_SET } from '@/lib/defaults';
 export function ExerciseCard({
   exercise,
   muscleGroup,
+  planExercise,
   expanded,
   onToggle,
   onChange,
@@ -140,6 +141,7 @@ export function ExerciseCard({
               key={set.id}
               index={index + 1}
               set={set}
+              planExercise={planExercise}
               onChange={(patch) => patchSet(index, patch)}
               onDelete={() => deleteSet(index)}
               readOnly={readOnly}
