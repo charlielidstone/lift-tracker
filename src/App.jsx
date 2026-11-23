@@ -28,8 +28,7 @@ const WORKOUT_SUBTABS = [
   { id: 'notes', label: 'Notes' },
 ];
 
-function WorkoutScreen() {
-  const [sub, setSub] = useState('today');
+function WorkoutScreen({ sub, onSub }) {
   return (
     <>
       <div className="mb-4 flex items-center gap-2">
@@ -39,7 +38,7 @@ function WorkoutScreen() {
             type="button"
             variant={sub === id ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setSub(id)}
+            onClick={() => onSub(id)}
             aria-pressed={sub === id}
           >
             {label}
@@ -63,6 +62,14 @@ const TITLES = {
 
 function MainApp() {
   const [screen, setScreen] = useState('workout');
+  const [workoutSub, setWorkoutSub] = useState('today');
+
+  // Tapping the Workout nav button always returns to the Today sub-tab — whether
+  // coming from another screen or already on Workout (e.g. viewing History).
+  const handleNav = (id) => {
+    if (id === 'workout') setWorkoutSub('today');
+    setScreen(id);
+  };
 
   return (
     <WorkoutProvider>
@@ -81,14 +88,16 @@ function MainApp() {
             <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <div className="mx-auto max-w-md p-4">
                 <h1 className="mb-4 text-xl font-semibold">{TITLES[screen]}</h1>
-                {screen === 'workout' && <WorkoutScreen />}
+                {screen === 'workout' && (
+                  <WorkoutScreen sub={workoutSub} onSub={setWorkoutSub} />
+                )}
                 {screen === 'library' && <LibraryView />}
                 {screen === 'plan' && <PlanView />}
                 {screen === 'progress' && <ProgressView />}
                 {screen === 'settings' && <SettingsView />}
               </div>
             </main>
-            <BottomNav active={screen} onChange={setScreen} />
+            <BottomNav active={screen} onChange={handleNav} />
           </div>
         </PlansProvider>
       </ScheduleProvider>
